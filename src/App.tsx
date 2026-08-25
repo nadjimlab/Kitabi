@@ -29,6 +29,7 @@ import { StorageService } from './services/storageService';
 import { supabase } from './services/supabaseClient';
 import { createNotification } from './services/notificationsService';
 import { EmailAuthModal } from './components/EmailAuthModal';
+import { RatingModal } from './components/RatingModal';
 import { LegalPage } from './components/LegalPage';
 import { EDUCATION_LEVELS, WILAYAS } from './data/algerianData';
 import { Navbar } from './components/Navbar';
@@ -99,6 +100,7 @@ export default function App() {
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
   const [reportTargetBook, setReportTargetBook] = useState<BookListing | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
 
   // In-App Chat Modal
   const [chatTargetUser, setChatTargetUser] = useState<User | null>(null);
@@ -968,6 +970,11 @@ export default function App() {
             setReportTargetBook(b);
             setIsReportModalOpen(true);
           }}
+          onOpenRating={(b) => {
+            if (!currentUser) { setIsAuthOpen(true); return; }
+            setSelectedBook(b);
+            setIsRatingModalOpen(true);
+          }}
         onSelectRelatedBook={handleSelectBook}
           relatedBooks={
             selectedBook
@@ -977,6 +984,7 @@ export default function App() {
         lang={lang}
       />
 
+      {currentUser && <RatingModal book={selectedBook} currentUser={currentUser} isOpen={isRatingModalOpen} onClose={() => setIsRatingModalOpen(false)} onSubmitted={() => { void refreshData(); }} />}
       {/* MODAL 2: Create Listing in Under 2 Minutes */}
       {currentUser && (
         <CreateListingModal

@@ -34,6 +34,7 @@ interface BookDetailsModalProps {
   onOpenChat: (book: BookListing, seller: User) => void;
   onOpenExchangeModal: (book: BookListing) => void;
   onOpenReportModal: (book: BookListing) => void;
+  onOpenRating: (book: BookListing) => void;
   onSelectRelatedBook: (book: BookListing) => void;
   relatedBooks: BookListing[];
   lang: 'ar' | 'fr';
@@ -49,6 +50,7 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
   onOpenChat,
   onOpenExchangeModal,
   onOpenReportModal,
+  onOpenRating,
   onSelectRelatedBook,
   relatedBooks,
   lang
@@ -397,6 +399,9 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
                     </a>
                     <button id="action-in-app-chat" onClick={() => onOpenChat(book, book.seller)} className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700 transition-all active:scale-95">
                       <MessageSquare className="w-4 h-4 text-blue-400" /><span>دردشة كِتابي</span>
+                    </button>
+                    <button id="action-rate-seller" onClick={() => onOpenRating(book)} className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow transition-all active:scale-95">
+                      <Star className="w-4 h-4 fill-current" /><span>قيّم البائع</span>
                     </button>
                     <button id="action-propose-trade" onClick={() => onOpenExchangeModal(book)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow transition-all active:scale-95">
                       <RefreshCw className="w-4 h-4" /><span>طلب تبادل 🔄</span>
