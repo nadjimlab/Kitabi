@@ -185,9 +185,10 @@ export class StorageService {
     const sellerId = authData.user?.id || this.currentUser?.id || this.currentUid;
     if (isSupabaseConfigured && sellerId) {
       const row = { id: listing.id, seller_id: sellerId, title: listing.title, author: listing.author || null, publisher: listing.publisher || null, publication_year: listing.year || null, level: listing.level, grade: listing.grade, grade_code: listing.gradeCode, stream: listing.stream || null, subject: listing.subject, condition: listing.condition, deal_type: listing.dealType, price: listing.price, original_price: listing.originalPrice || null, exchange_for: listing.exchangeFor || null, description: listing.description, photos: listing.photos, wilaya_code: listing.wilayaCode, wilaya_name_ar: listing.wilayaNameAr, wilaya_name_fr: listing.wilayaNameFr, municipality: listing.municipality, delivery_available: listing.deliveryAvailable, hand_delivery_only: listing.handDeliveryOnly, has_pencil_marks: Boolean(listing.hasPencilMarks), has_answers_included: Boolean(listing.hasAnswersIncluded), includes_cd: Boolean(listing.includesCD), views: listing.views, favorites_count: listing.favoritesCount, is_featured: Boolean(listing.isFeatured), status: 'pending' };
-      const { error } = await supabase.from('listings').upsert(row);
-      if (!error) { this.listingsSnapshot = [listing, ...this.listingsSnapshot.filter((item) => item.id !== listing.id)]; return listing; }
-      throw error;
+      const { data: inserted, error } = await supabase.from('listings').insert(row).select('id').single();
+      if (!error && inserted) { this.listingsSnapshot = [{ ...listing, id: String(inserted.id), sellerId }, ...this.listingsSnapshot.filter((item) => item.id !== listing.id)]; return { ...listing, id: String(inserted.id), sellerId }; }
+      if (error?.code === '42501') throw new Error(`رفضت سياسة RLS نشر الإعلان. UID الجلسة: ${sellerId}. تأكد أن سياسة INSERT تستخدم seller_id = auth.uid().`);
+      throw error || new Error('تعذر حفظ الإعلان في Supabase.');
     }
     if (!firestoreReady() || !db || !sellerId) throw new Error('يجب تسجيل الدخول قبل نشر إعلان.');
     await setDoc(doc(db, 'listings', listing.id), { ...asRecord(listing), sellerId, updatedAt: formatNow() });
