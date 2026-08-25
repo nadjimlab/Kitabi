@@ -181,7 +181,8 @@ export class StorageService {
   }
 
   static async saveListing(listing: BookListing): Promise<BookListing> {
-    const sellerId = this.currentUser?.id || this.currentUid;
+    const { data: authData } = isSupabaseConfigured ? await supabase.auth.getUser() : { data: { user: null } };
+    const sellerId = authData.user?.id || this.currentUser?.id || this.currentUid;
     if (isSupabaseConfigured && sellerId) {
       const row = { id: listing.id, seller_id: sellerId, title: listing.title, author: listing.author || null, publisher: listing.publisher || null, publication_year: listing.year || null, level: listing.level, grade: listing.grade, grade_code: listing.gradeCode, stream: listing.stream || null, subject: listing.subject, condition: listing.condition, deal_type: listing.dealType, price: listing.price, original_price: listing.originalPrice || null, exchange_for: listing.exchangeFor || null, description: listing.description, photos: listing.photos, wilaya_code: listing.wilayaCode, wilaya_name_ar: listing.wilayaNameAr, wilaya_name_fr: listing.wilayaNameFr, municipality: listing.municipality, delivery_available: listing.deliveryAvailable, hand_delivery_only: listing.handDeliveryOnly, has_pencil_marks: Boolean(listing.hasPencilMarks), has_answers_included: Boolean(listing.hasAnswersIncluded), includes_cd: Boolean(listing.includesCD), views: listing.views, favorites_count: listing.favoritesCount, is_featured: Boolean(listing.isFeatured), status: 'pending' };
       const { error } = await supabase.from('listings').upsert(row);
