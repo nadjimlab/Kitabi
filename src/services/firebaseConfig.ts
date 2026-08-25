@@ -1,7 +1,7 @@
 import { getAnalytics } from 'firebase/analytics';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -29,7 +29,15 @@ export const app = isFirebaseConfigured
     : initializeApp(firebaseConfig)
   : null;
 
-export const db = app ? getFirestore(app) : null;
+export const db = app
+  ? (() => {
+      try {
+        return initializeFirestore(app, { experimentalForceLongPolling: true });
+      } catch {
+        return getFirestore(app);
+      }
+    })()
+  : null;
 export const auth = app ? getAuth(app) : null;
 export const storage = app ? getStorage(app) : null;
 
