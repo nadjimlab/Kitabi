@@ -7,7 +7,7 @@ interface EmailAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   lang: 'ar' | 'fr';
-  onAuthenticated: () => void;
+  onAuthenticated: () => void | Promise<void>;
 }
 
 export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose, lang, onAuthenticated }) => {
@@ -45,7 +45,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose,
       } else {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
-      onAuthenticated();
+      await onAuthenticated();
       onClose();
     } catch (authError) {
       console.error(authError);
@@ -56,6 +56,9 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose,
         'auth/weak-password': 'كلمة المرور يجب أن تتكون من 6 أحرف على الأقل.',
         'auth/invalid-email': 'أدخل بريدًا إلكترونيًا صحيحًا.',
         'auth/too-many-requests': 'محاولات كثيرة. حاول بعد قليل.',
+        'permission-denied': 'تم تسجيل الدخول، لكن صلاحية قراءة ملف المستخدم مرفوضة في Firestore. راجع قواعد users.',
+        'failed-precondition': 'قاعدة Firestore غير مهيأة أو غير متاحة لهذا المشروع.',
+        'unavailable': 'تعذر الاتصال بـ Firebase. تحقق من الإنترنت وحاول مجددًا.',
       };
       setError(messages[code || ''] || 'تعذر إتمام العملية. تأكد من تفعيل Email/Password في Firebase.');
     } finally {

@@ -277,6 +277,14 @@ export default function App() {
     setRecentSearches(StorageService.getRecentSearches());
   };
 
+  const handleAuthSuccess = async () => {
+    const firebaseUser = auth?.currentUser;
+    if (!firebaseUser) throw new Error('لم يتم العثور على جلسة Firebase بعد تسجيل الدخول.');
+    const profile = await StorageService.getOrCreateUserProfile(firebaseUser);
+    StorageService.setAuthUser(firebaseUser, profile);
+    setCurrentUser(profile);
+  };
+
   // Toggle favorite
   const handleToggleFavorite = async (listingId: string) => {
     if (!currentUser) { setIsAuthOpen(true); return; }
@@ -972,7 +980,7 @@ export default function App() {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         lang={lang}
-        onAuthenticated={() => void refreshData()}
+        onAuthenticated={handleAuthSuccess}
       />
 
       {/* DRAWER: Advanced Filters Sheet */}
