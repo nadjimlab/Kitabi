@@ -43,6 +43,7 @@ import { ChatMessengerModal } from './components/ChatMessengerModal';
 import { ReportModal } from './components/ReportModal';
 import { UserProfileView } from './components/UserProfileView';
 import { AdminDashboard } from './components/AdminDashboard';
+import { SupabaseAdminPortal } from './components/SupabaseAdminPortal';
 import { FilterDrawer } from './components/FilterDrawer';
 import { RecentSearchesBar } from './components/RecentSearchesBar';
 import { RecentSearchItem } from './types';
@@ -67,7 +68,7 @@ const initialFilters: FilterState = {
 
 export default function App() {
   // Navigation & Language
-  const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'exchange' | 'profile' | 'admin' | 'terms' | 'privacy'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'exchange' | 'profile' | 'admin' | 'control' | 'terms' | 'privacy'>('home');
   const [lang, setLang] = useState<'ar' | 'fr'>('ar');
 
   // Application Data States
@@ -155,6 +156,10 @@ export default function App() {
         window.history.replaceState({}, '', '/');
         setCurrentView('home');
       }
+      return;
+    }
+    if (route === 'control') {
+      setCurrentView('control');
       return;
     }
     if (route === 'terms' || route === 'privacy' || route === 'marketplace' || route === 'exchange') {
@@ -792,7 +797,9 @@ export default function App() {
         )}
 
         {/* VIEW 5: ADMIN DASHBOARD */}
-        {currentView === 'admin' && isAdmin && (
+        {currentView === 'control' && <SupabaseAdminPortal />}
+
+        {currentView === 'admin' && (
           <AdminDashboard
             listings={listings}
             onBackToApp={() => navigate('home')}
