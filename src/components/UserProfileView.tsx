@@ -193,7 +193,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          <span>إعلاناتي المعروضة ({myListings.length})</span>
+          <span>إعلاناتي ({myListings.length})</span>
         </button>
 
         <button
@@ -246,7 +246,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
             {myListings.length === 0 ? (
               <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center space-y-3">
                 <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
-                <h3 className="font-bold text-slate-800 text-base">ليس لديك أي إعلانات نشطة حالياً</h3>
+                <h3 className="font-bold text-slate-800 text-base">ليس لديك أي إعلانات حالياً</h3>
                 <p className="text-xs text-slate-500">أضف كتبك القديمة واكسب مساحة وساعد غيرك في توفير تكاليف الدخول المدرسي.</p>
                 <button
                   onClick={onOpenCreateListing}
@@ -267,7 +267,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                             {b.grade}
                           </span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${b.status === 'active' ? 'bg-emerald-100 text-emerald-800' : b.status === 'pending' ? 'bg-amber-100 text-amber-800' : b.status === 'flagged' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'}`}>
-                            {b.status === 'active' ? 'مقبول ومعروض' : b.status === 'pending' ? 'قيد المراجعة' : b.status === 'flagged' ? 'مرفوض' : 'مكتمل / تم البيع'}
+                            {b.status === 'active' ? 'مقبول ومعروض' : b.status === 'pending' ? 'قيد المراجعة' : b.status === 'flagged' ? 'مرفوض' : b.status === 'completed' ? 'مباع / غير متوفر' : 'محجوز'}
                           </span>
                         </div>
                         <h4 className="font-bold text-sm text-slate-900 truncate font-serif">{b.title}</h4>
@@ -286,14 +286,14 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                             onClick={() => handleMarkStatus(b.id, 'completed')}
                             className="text-[11px] font-bold text-slate-600 hover:text-emerald-700 bg-slate-100 px-2.5 py-1 rounded-lg"
                           >
-                            تحديد كـ "تم البيع/التبادل"
+                            تحديد كـ "مباع / غير متوفر"
                           </button>
                         ) : (
                           <button
                             onClick={() => handleMarkStatus(b.id, 'active')}
                             className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg"
                           >
-                            إعادة تنشيط
+                            إعادة عرض الكتاب
                           </button>
                         )}
                       </div>

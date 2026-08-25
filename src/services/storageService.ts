@@ -196,6 +196,14 @@ export class StorageService {
   }
 
   static async deleteListing(id: string): Promise<boolean> {
+    if (isSupabaseConfigured) {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) return false;
+      const { error } = await supabase.from('listings').delete().eq('id', id).eq('seller_id', authData.user.id);
+      if (error) throw error;
+      this.listingsSnapshot = this.listingsSnapshot.filter((listing) => listing.id !== id);
+      return true;
+    }
     if (!firestoreReady() || !db || !this.currentUid) return false;
     await deleteDoc(doc(db, 'listings', id));
     this.listingsSnapshot = this.listingsSnapshot.filter((listing) => listing.id !== id);
@@ -203,6 +211,14 @@ export class StorageService {
   }
 
   static async markListingStatus(id: string, status: BookListing['status']): Promise<boolean> {
+    if (isSupabaseConfigured) {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) return false;
+      const { error } = await supabase.from('listings').update({ status, updated_at: new Date().toISOString() }).eq('id', id).eq('seller_id', authData.user.id);
+      if (error) throw error;
+      this.listingsSnapshot = this.listingsSnapshot.map((listing) => (listing.id === id ? { ...listing, status } : listing));
+      return true;
+    }
     if (!firestoreReady() || !db || !this.currentUid) return false;
     await updateDoc(doc(db, 'listings', id), { status, updatedAt: formatNow() });
     this.listingsSnapshot = this.listingsSnapshot.map((listing) => (listing.id === id ? { ...listing, status } : listing));
