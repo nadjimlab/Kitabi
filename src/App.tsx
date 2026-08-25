@@ -143,15 +143,16 @@ export default function App() {
         role: data.role === 'admin' ? 'admin' : 'user',
       };
       setCurrentUser(profile);
+      StorageService.setAuthUser(null, profile);
     };
     supabase.auth.getSession().then(async ({ data: sessionData }) => {
       try {
         const user = sessionData.session?.user;
         if (user) await loadProfile(user.id, user.email || '');
-        else if (mounted) setCurrentUser(null);
+        else if (mounted) { setCurrentUser(null); StorageService.setAuthUser(null, null); }
       } catch (error) {
         console.error('Supabase profile error', error);
-        if (mounted) setCurrentUser(null);
+        if (mounted) { setCurrentUser(null); StorageService.setAuthUser(null, null); }
       } finally {
         if (mounted) setAuthLoading(false);
       }
@@ -159,10 +160,10 @@ export default function App() {
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       try {
         if (session?.user) await loadProfile(session.user.id, session.user.email || '');
-        else if (mounted) setCurrentUser(null);
+        else if (mounted) { setCurrentUser(null); StorageService.setAuthUser(null, null); }
       } catch (error) {
         console.error('Supabase auth profile error', error);
-        if (mounted) setCurrentUser(null);
+        if (mounted) { setCurrentUser(null); StorageService.setAuthUser(null, null); }
       } finally {
         if (mounted) setAuthLoading(false);
       }
@@ -319,13 +320,15 @@ export default function App() {
     if (!data.user) throw new Error('لم يتم العثور على جلسة Supabase بعد تسجيل الدخول.');
     const { data: profileData, error } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
     if (error) throw error;
-    setCurrentUser({
+    const profile: User = {
       id: profileData.id, name: profileData.name || 'مستخدم كتابي', email: profileData.email || data.user.email || '',
       phone: profileData.phone || '', avatar: profileData.avatar || getDefaultAvatar(profileData.name, profileData.email || data.user.email || ''), wilayaCode: profileData.wilaya_code || 16,
       municipality: profileData.municipality || '', rating: Number(profileData.rating || 5), reviewsCount: profileData.reviews_count || 0,
       isVerified: profileData.is_verified ?? false, isBookstore: profileData.is_bookstore ?? false,
       joinedDate: profileData.joined_date || new Date().toISOString(), role: profileData.role === 'admin' ? 'admin' : 'user',
-    });
+    };
+    setCurrentUser(profile);
+    StorageService.setAuthUser(null, profile);
   };
 
   // Toggle favorite
