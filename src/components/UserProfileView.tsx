@@ -75,7 +75,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   const myListings = listings.filter(l => l.sellerId === currentUser.id);
   const favoriteListings = listings.filter(l => favorites.includes(l.id));
 
-  const handleMarkStatus = async (id: string, status: 'active' | 'completed' | 'reserved') => {
+  const handleMarkStatus = async (id: string, status: 'active' | 'completed' | 'reserved' | 'sold' | 'unavailable') => {
     await StorageService.markListingStatus(id, status);
     window.location.reload();
   };
@@ -267,7 +267,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                             {b.grade}
                           </span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${b.status === 'active' ? 'bg-emerald-100 text-emerald-800' : b.status === 'pending' ? 'bg-amber-100 text-amber-800' : b.status === 'flagged' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'}`}>
-                            {b.status === 'active' ? 'مقبول ومعروض' : b.status === 'pending' ? 'قيد المراجعة' : b.status === 'flagged' ? 'مرفوض' : b.status === 'completed' ? 'مباع / غير متوفر' : 'محجوز'}
+                            {b.status === 'active' ? 'مقبول ومعروض' : b.status === 'pending' ? 'قيد المراجعة' : b.status === 'flagged' ? 'مرفوض' : b.status === 'sold' ? 'مباع' : b.status === 'unavailable' ? 'غير متوفر' : b.status === 'completed' ? 'مكتمل' : 'محجوز'}
                           </span>
                         </div>
                         <h4 className="font-bold text-sm text-slate-900 truncate font-serif">{b.title}</h4>
@@ -279,32 +279,34 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        {b.status === 'active' ? (
+                    <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {(b.status === 'active' || b.status === 'pending') ? <>
                           <button
-                            onClick={() => handleMarkStatus(b.id, 'completed')}
-                            className="text-[11px] font-bold text-slate-600 hover:text-emerald-700 bg-slate-100 px-2.5 py-1 rounded-lg"
+                            onClick={() => handleMarkStatus(b.id, 'unavailable')}
+                            className="text-[11px] font-bold text-amber-800 hover:bg-amber-100 bg-amber-50 px-2.5 py-1.5 rounded-lg"
                           >
-                            تحديد كـ "مباع / غير متوفر"
+                            غير متوفر
                           </button>
-                        ) : (
                           <button
-                            onClick={() => handleMarkStatus(b.id, 'active')}
-                            className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg"
+                            onClick={() => handleMarkStatus(b.id, 'sold')}
+                            className="text-[11px] font-bold text-blue-800 hover:bg-blue-100 bg-blue-50 px-2.5 py-1.5 rounded-lg"
                           >
-                            إعادة عرض الكتاب
+                            مباع
                           </button>
-                        )}
+                        </> : <button
+                          onClick={() => handleMarkStatus(b.id, 'active')}
+                          className="text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 bg-emerald-50 px-2.5 py-1.5 rounded-lg"
+                        >
+                          إعادة عرض الكتاب
+                        </button>}
+                        <button
+                          onClick={() => handleDeleteListing(b.id)}
+                          className="text-[11px] font-bold text-rose-700 hover:bg-rose-100 bg-rose-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> حذف نهائي
+                        </button>
                       </div>
-
-                      <button
-                        onClick={() => handleDeleteListing(b.id)}
-                        className="text-rose-600 hover:text-rose-700 p-1 rounded-lg hover:bg-rose-50"
-                        title="حذف الإعلان"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
                 ))}

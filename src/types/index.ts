@@ -63,7 +63,7 @@ export interface BookListing {
   views: number;
   favoritesCount: number;
   isFeatured?: boolean;
-  status: 'pending' | 'active' | 'reserved' | 'completed' | 'flagged';
+  status: 'pending' | 'active' | 'reserved' | 'completed' | 'sold' | 'unavailable' | 'flagged';
   moderationNote?: string;
   reviewedAt?: string;
 }
