@@ -37,16 +37,20 @@ export const SupabaseAdminPortal: React.FC = () => {
     if (profile.error) throw profile.error;
     if (profile.data?.role !== 'admin') { setIsAdmin(false); throw new Error('هذا الحساب ليس مسؤولًا في Supabase.'); }
     setIsAdmin(true);
+    const optional = async (query: PromiseLike<any>) => {
+      const result = await query;
+      return result.error ? { data: null, count: 0, error: null } : result;
+    };
     const [users, listings, active, pendingListings, reports, ratings, messages, exchanges, favorites, recentListings, recentUsers] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }),
       supabase.from('listings').select('id', { count: 'exact', head: true }),
       supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('ratings').select('id', { count: 'exact', head: true }),
-      supabase.from('messages').select('id', { count: 'exact', head: true }),
-      supabase.from('exchange_requests').select('id', { count: 'exact', head: true }),
-      supabase.from('favorites').select('listing_id', { count: 'exact', head: true }),
+      optional(supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending')),
+      optional(supabase.from('ratings').select('id', { count: 'exact', head: true })),
+      optional(supabase.from('messages').select('id', { count: 'exact', head: true })),
+      optional(supabase.from('exchange_requests').select('id', { count: 'exact', head: true })),
+      optional(supabase.from('favorites').select('listing_id', { count: 'exact', head: true })),
       supabase.from('listings').select('id,title,status,created_at,level,deal_type,photos,description,condition,price,seller:profiles(name,email,phone)').order('created_at', { ascending: false }).limit(6),
       supabase.from('profiles').select('id,name,email,role,created_at').order('created_at', { ascending: false }).limit(5),
     ]);
