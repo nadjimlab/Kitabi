@@ -77,6 +77,7 @@ export default function App() {
   const [chats, setChats] = useState<any[]>([]);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [pendingView, setPendingView] = useState<'admin' | 'profile' | null>(null);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
 
   // Search Results Caching & History States
@@ -140,19 +141,40 @@ export default function App() {
     return unsubscribe;
   }, []);
 
-  // Guard direct URL access to protected routes
+  // Guard direct URL access to protected routes and resume the requested view after auth.
   useEffect(() => {
     if (authLoading) return;
     const route = window.location.pathname.replace(/^\//, '').split('/')[0];
     if (route === 'admin') {
-      if (isAdmin) setCurrentView('admin');
-      else window.history.replaceState({}, '', '/');
+      if (isAdmin) {
+        setCurrentView('admin');
+      } else if (!currentUser) {
+        setPendingView('admin');
+        setIsAuthOpen(true);
+      } else {
+        window.history.replaceState({}, '', '/');
+        setCurrentView('home');
+      }
       return;
     }
     if (route === 'terms' || route === 'privacy' || route === 'marketplace' || route === 'exchange') {
       setCurrentView(route);
     }
-  }, [authLoading, isAdmin]);
+  }, [authLoading, currentUser, isAdmin]);
+
+  useEffect(() => {
+    if (!authLoading && pendingView && currentUser) {
+      if (pendingView === 'admin' && currentUser.role === 'admin') {
+        setCurrentView('admin');
+        window.history.replaceState({}, '', '/admin');
+      } else if (pendingView === 'profile') {
+        setCurrentView('profile');
+        window.history.replaceState({}, '', '/profile');
+      }
+      setPendingView(null);
+      setIsAuthOpen(false);
+    }
+  }, [authLoading, currentUser, pendingView]);
 
   // Load public listings and private user data from Firestore
   useEffect(() => {
@@ -314,11 +336,18 @@ export default function App() {
   const unreadChatCount = chats.reduce((acc, chat) => acc + chat.unreadCount, 0);
 
   const navigate = (view: 'home' | 'marketplace' | 'exchange' | 'profile' | 'admin' | 'terms' | 'privacy') => {
-    if (view === 'admin' && !isAdmin) {
+    if (view === 'admin' && !currentUser) {
+      setPendingView('admin');
       setIsAuthOpen(true);
       return;
     }
-    if ((view === 'profile' || view === 'admin') && !currentUser) {
+    if (view === 'admin' && !isAdmin) {
+      setCurrentView('home');
+      window.history.replaceState({}, '', '/');
+      return;
+    }
+    if (view === 'profile' && !currentUser) {
+      setPendingView('profile');
       setIsAuthOpen(true);
       return;
     }
