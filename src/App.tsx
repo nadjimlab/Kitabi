@@ -47,6 +47,8 @@ import { FilterDrawer } from './components/FilterDrawer';
 import { RecentSearchesBar } from './components/RecentSearchesBar';
 import { RecentSearchItem } from './types';
 
+const getDefaultAvatar = (name: string, email = '') => `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name || email || 'Kitabi')}&backgroundColor=0b192c&fontFamily=Arial`;
+
 const initialFilters: FilterState = {
   searchQuery: '',
   level: 'all',
@@ -125,12 +127,12 @@ export default function App() {
         email: data.email || email,
         phone: data.phone || '',
         whatsapp: data.whatsapp || undefined,
-        avatar: data.avatar || '',
+        avatar: data.avatar || getDefaultAvatar(data.name, data.email || email),
         wilayaCode: data.wilaya_code || 16,
         municipality: data.municipality || '',
         rating: Number(data.rating || 5),
         reviewsCount: data.reviews_count || 0,
-        isVerified: data.is_verified ?? true,
+        isVerified: data.is_verified ?? false,
         isBookstore: data.is_bookstore ?? false,
         bookstoreName: data.bookstore_name || undefined,
         joinedDate: data.joined_date || new Date().toISOString(),
@@ -295,6 +297,19 @@ export default function App() {
     setRecentSearches(StorageService.getRecentSearches());
   };
 
+  const handleUpdateAvatar = async (file: File) => {
+    if (!currentUser) return;
+    if (file.size > 5 * 1024 * 1024) { window.alert('حجم الصورة يجب ألا يتجاوز 5 ميغابايت.'); return; }
+    const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const path = `avatars/${currentUser.id}/${Date.now()}.${extension}`;
+    const { error: uploadError } = await supabase.storage.from('book-images').upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) { window.alert(`تعذر رفع الصورة: ${uploadError.message}`); return; }
+    const { data: publicData } = supabase.storage.from('book-images').getPublicUrl(path);
+    const { error: profileError } = await supabase.from('profiles').update({ avatar: publicData.publicUrl, updated_at: new Date().toISOString() }).eq('id', currentUser.id);
+    if (profileError) { window.alert(`تعذر تحديث الملف الشخصي: ${profileError.message}`); return; }
+    setCurrentUser({ ...currentUser, avatar: publicData.publicUrl });
+  };
+
   const handleAuthSuccess = async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw new Error('لم يتم العثور على جلسة Supabase بعد تسجيل الدخول.');
@@ -302,9 +317,9 @@ export default function App() {
     if (error) throw error;
     setCurrentUser({
       id: profileData.id, name: profileData.name || 'مستخدم كتابي', email: profileData.email || data.user.email || '',
-      phone: profileData.phone || '', avatar: profileData.avatar || '', wilayaCode: profileData.wilaya_code || 16,
+      phone: profileData.phone || '', avatar: profileData.avatar || getDefaultAvatar(profileData.name, profileData.email || data.user.email || ''), wilayaCode: profileData.wilaya_code || 16,
       municipality: profileData.municipality || '', rating: Number(profileData.rating || 5), reviewsCount: profileData.reviews_count || 0,
-      isVerified: profileData.is_verified ?? true, isBookstore: profileData.is_bookstore ?? false,
+      isVerified: profileData.is_verified ?? false, isBookstore: profileData.is_bookstore ?? false,
       joinedDate: profileData.joined_date || new Date().toISOString(), role: profileData.role === 'admin' ? 'admin' : 'user',
     });
   };
@@ -352,6 +367,7 @@ export default function App() {
 
   // Start chat with user
   const handleOpenChat = (targetUser: User, book?: BookListing) => {
+    if (!currentUser) { setIsAuthOpen(true); return; }
     setChatTargetUser(targetUser);
     setChatTargetBook(book || null);
     setIsChatModalOpen(true);
@@ -376,6 +392,11 @@ export default function App() {
     if (view === 'admin' && !isAdmin) {
       setCurrentView('home');
       window.history.replaceState({}, '', '/');
+      return;
+    }
+    if (view === 'exchange' && !currentUser) {
+      setPendingView('profile');
+      setIsAuthOpen(true);
       return;
     }
     if (view === 'profile' && !currentUser) {
@@ -810,6 +831,7 @@ export default function App() {
             onOpenChatWithUser={(target) => handleOpenChat(target)}
             onNavigateToAdmin={() => navigate('admin')}
             onSignOut={() => { void supabase.auth.signOut(); setCurrentUser(null); navigate('home'); }}
+            onUpdateAvatar={handleUpdateAvatar}
             isAdmin={isAdmin}
             lang={lang}
           />

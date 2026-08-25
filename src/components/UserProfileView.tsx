@@ -17,7 +17,8 @@ import {
   LogOut,
   Building2,
   SlidersHorizontal,
-  ExternalLink
+  ExternalLink,
+  ImagePlus
 } from 'lucide-react';
 import { User, BookListing, ExchangeRequest, ChatConversation } from '../types';
 import { StorageService } from '../services/storageService';
@@ -34,6 +35,7 @@ interface UserProfileViewProps {
   onOpenChatWithUser: (targetUser: User, book?: BookListing) => void;
   onNavigateToAdmin: () => void;
   onSignOut: () => void;
+  onUpdateAvatar?: (file: File) => void | Promise<void>;
   isAdmin?: boolean;
   lang: 'ar' | 'fr';
 }
@@ -49,6 +51,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   onOpenChatWithUser,
   onNavigateToAdmin,
   onSignOut,
+  onUpdateAvatar,
   isAdmin = false,
   lang
 }) => {
@@ -100,10 +103,16 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           <div className="flex items-center gap-4">
             <div className="relative">
               <img
-                src={currentUser.avatar}
+                src={currentUser.avatar || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(currentUser.name || 'Kitabi')}&backgroundColor=0b192c&fontFamily=Arial`}
                 alt={currentUser.name}
                 className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-3 border-emerald-500 shadow-xl"
               />
+              {onUpdateAvatar && (
+                <label className="absolute -top-2 -left-2 w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center cursor-pointer shadow-lg border-2 border-[#0B192C] hover:bg-emerald-400 transition-colors" title="تغيير صورة الحساب">
+                  <ImagePlus className="w-4 h-4" />
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpdateAvatar(file); event.currentTarget.value = ''; }} />
+                </label>
+              )}
               {currentUser.isVerified && (
                 <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full border-2 border-[#0B192C]">
                   <CheckCircle2 className="w-4 h-4" />
@@ -119,11 +128,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                     <Building2 className="w-3 h-3" />
                     مكتبة معتمدة
                   </span>
-                ) : (
-                  <span className="text-[11px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold border border-emerald-500/30">
-                    حساب فردي موثوق
-                  </span>
-                )}
+                ) : null}
               </div>
 
               <div className="flex items-center gap-3 text-xs text-slate-300 flex-wrap">
@@ -131,18 +136,15 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                   <MapPin className="w-3.5 h-3.5 text-emerald-400" />
                   {currentUser.municipality} ({currentUser.wilayaCode})
                 </span>
-                <span>•</span>
-                <span className="flex items-center gap-1 text-amber-400 font-bold">
+                {currentUser.reviewsCount > 0 && <span className="flex items-center gap-1 text-amber-400 font-bold">
                   <Star className="w-3.5 h-3.5 fill-current" />
                   {currentUser.rating} ({currentUser.reviewsCount} تقييم)
-                </span>
-                <span>•</span>
-                <span>عضو منذ {currentUser.joinedDate}</span>
+                </span>}
+                {currentUser.joinedDate && <span>عضو منذ {currentUser.joinedDate}</span>}
               </div>
 
-              <div className="text-xs text-slate-400 flex items-center gap-3 pt-1">
-                <span className="font-mono">{currentUser.phone}</span>
-                <span>•</span>
+              <div className="text-xs text-slate-400 flex items-center gap-3 pt-1 flex-wrap">
+                {currentUser.phone && <><span className="font-mono">{currentUser.phone}</span><span>•</span></>}
                 <span>{currentUser.email}</span>
               </div>
             </div>

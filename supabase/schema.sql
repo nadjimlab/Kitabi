@@ -19,7 +19,7 @@ create table if not exists public.profiles (
   municipality text not null default 'الجزائر الوسطى',
   rating numeric(3,2) not null default 5,
   reviews_count integer not null default 0,
-  is_verified boolean not null default true,
+  is_verified boolean not null default false,
   is_bookstore boolean not null default false,
   bookstore_name text,
   joined_date text not null default '',

@@ -232,66 +232,6 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
           })}
         </div>
 
-        {/* Live Algerian Impact Stats Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900/40 backdrop-blur border border-slate-800 p-4 rounded-2xl">
-          
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
-              <Coins className="w-5 h-5 text-amber-400" />
-            </div>
-            <div>
-              <div className="text-base sm:text-lg font-black text-amber-300 font-mono">
-                {stats.estimatedSavingsDZD.toLocaleString()} <span className="text-xs font-normal">د.ج</span>
-              </div>
-              <div className="text-[10px] sm:text-xs text-slate-400 font-medium">
-                {lang === 'ar' ? 'وفرتها العائلات' : 'Économisés'}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
-              <BookOpen className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <div className="text-base sm:text-lg font-black text-emerald-300 font-mono">
-                {stats.totalBooks}+ <span className="text-xs font-normal">{lang === 'ar' ? 'كتاب' : 'Livres'}</span>
-              </div>
-              <div className="text-[10px] sm:text-xs text-slate-400 font-medium">
-                {lang === 'ar' ? 'معروض في المنصة' : 'En catalogue'}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0">
-              <MapPin className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <div className="text-base sm:text-lg font-black text-blue-300 font-mono">
-                {stats.activeWilayasCount} <span className="text-xs font-normal">/ 69</span>
-              </div>
-              <div className="text-[10px] sm:text-xs text-slate-400 font-medium">
-                {lang === 'ar' ? 'ولاية مغطاة' : 'Wilayas actives'}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5 text-purple-400" />
-            </div>
-            <div>
-              <div className="text-base sm:text-lg font-black text-purple-300 font-mono">
-                100%
-              </div>
-              <div className="text-[10px] sm:text-xs text-slate-400 font-medium">
-                {lang === 'ar' ? 'مجاني بدون عمولة' : '100% Gratuit'}
-              </div>
-            </div>
-          </div>
-
-        </div>
 
         {/* Quick Hero CTA to post book */}
         <div className="mt-6 flex items-center justify-center">
