@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { User, Wilaya } from '../types';
 import { WILAYAS } from '../data/algerianData';
+import { NotificationBell } from './NotificationBell';
 
 interface NavbarProps {
   currentUser: User | null;
@@ -213,7 +214,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden sm:inline">{lang === 'ar' ? 'أضف كتابك' : 'Publier'}</span>
             </button>
 
-            {/* User Profile / Phone Auth */}
+            {currentUser && <NotificationBell userId={currentUser.id} />}
+
+            {/* User Profile / Supabase Auth */}
             {currentUser ? (
               <button
                 id="navbar-user-profile-btn"
