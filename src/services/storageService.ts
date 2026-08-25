@@ -72,7 +72,18 @@ export class StorageService {
   static async getOrCreateUserProfile(firebaseUser: FirebaseUser): Promise<User> {
     if (!firestoreReady() || !db) throw new Error('Firebase غير مهيأ.');
     const userRef = doc(db, 'users', firebaseUser.uid);
-    const snapshot = await getDoc(userRef);
+    let snapshot;
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        snapshot = await getDoc(userRef);
+        break;
+      } catch (error) {
+        lastError = error;
+        if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 450 * (attempt + 1)));
+      }
+    }
+    if (!snapshot) throw lastError || new Error('تعذر قراءة ملف المستخدم من Firestore.');
     const stored = snapshot.exists() ? snapshot.data() : {};
     const defaults: User = {
       id: firebaseUser.uid,

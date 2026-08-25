@@ -60,7 +60,8 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose,
         'failed-precondition': 'قاعدة Firestore غير مهيأة أو غير متاحة لهذا المشروع.',
         'unavailable': 'تعذر الاتصال بـ Firebase. تحقق من الإنترنت وحاول مجددًا.',
       };
-      setError(messages[code || ''] || 'تعذر إتمام العملية. تأكد من تفعيل Email/Password في Firebase.');
+      const friendlyMessage = messages[code || ''] || 'تعذر إتمام العملية. تأكد من إعداد Firebase وقواعد Firestore.';
+      setError(code ? `${friendlyMessage} (${code})` : friendlyMessage);
     } finally {
       setIsSubmitting(false);
     }
