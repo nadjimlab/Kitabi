@@ -47,8 +47,12 @@ function formatNow() {
   return new Date().toLocaleString('ar-DZ', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+function firestoreReady() {
+  return Boolean(isFirebaseConfigured && db);
+}
+
 function firebaseReady() {
-  return Boolean(isFirebaseConfigured && db && storage);
+  return Boolean(firestoreReady() && storage);
 }
 
 export class StorageService {
@@ -66,11 +70,29 @@ export class StorageService {
   }
 
   static async getOrCreateUserProfile(firebaseUser: FirebaseUser): Promise<User> {
-    if (!firebaseReady() || !db) throw new Error('Firebase غير مهيأ.');
+    if (!firestoreReady() || !db) throw new Error('Firebase غير مهيأ.');
     const userRef = doc(db, 'users', firebaseUser.uid);
     const snapshot = await getDoc(userRef);
+    const stored = snapshot.exists() ? snapshot.data() : {};
+    const defaults: User = {
+      id: firebaseUser.uid,
+      name: firebaseUser.displayName || 'مستخدم كتابي',
+      email: firebaseUser.email || '',
+      phone: firebaseUser.phoneNumber || '',
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.email || firebaseUser.uid)}&background=0b192c&color=fff`,
+      wilayaCode: 16,
+      municipality: 'الجزائر الوسطى',
+      rating: 5,
+      reviewsCount: 0,
+      isVerified: true,
+      isBookstore: false,
+      joinedDate: new Date().toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long' }),
+      bio: '',
+      role: 'user',
+    };
+
     if (snapshot.exists()) {
-      const profile = { id: snapshot.id, ...snapshot.data() } as User;
+      const profile = { ...defaults, ...stored, id: firebaseUser.uid, email: String(stored.email || defaults.email) } as User;
       this.currentUser = profile;
       return profile;
     }
@@ -97,13 +119,13 @@ export class StorageService {
   }
 
   static async updateUserProfile(user: User) {
-    if (!firebaseReady() || !db || !this.currentUid) return;
+    if (!firestoreReady() || !db || !this.currentUid) return;
     await setDoc(doc(db, 'users', this.currentUid), asRecord(user), { merge: true });
     this.currentUser = user;
   }
 
   static async getAllUsers(): Promise<User[]> {
-    if (!firebaseReady() || !db || !this.currentUid) return [];
+    if (!firestoreReady() || !db || !this.currentUid) return [];
     const snapshot = await getDocs(collection(db, 'users'));
     return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as User);
   }
@@ -113,7 +135,7 @@ export class StorageService {
   }
 
   static async getListings(): Promise<BookListing[]> {
-    if (!firebaseReady() || !db) {
+    if (!firestoreReady() || !db) {
       this.listingsSnapshot = INITIAL_LISTINGS;
       return INITIAL_LISTINGS;
     }
@@ -130,13 +152,13 @@ export class StorageService {
   }
 
   static async getListingById(id: string): Promise<BookListing | undefined> {
-    if (!firebaseReady() || !db) return this.listingsSnapshot.find((listing) => listing.id === id);
+    if (!firestoreReady() || !db) return this.listingsSnapshot.find((listing) => listing.id === id);
     const snapshot = await getDoc(doc(db, 'listings', id));
     return snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as BookListing) : undefined;
   }
 
   static async saveListing(listing: BookListing): Promise<BookListing> {
-    if (!firebaseReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول قبل نشر إعلان.');
+    if (!firestoreReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول قبل نشر إعلان.');
     await setDoc(doc(db, 'listings', listing.id), {
       ...asRecord(listing),
       sellerId: this.currentUid,
@@ -147,21 +169,21 @@ export class StorageService {
   }
 
   static async deleteListing(id: string): Promise<boolean> {
-    if (!firebaseReady() || !db || !this.currentUid) return false;
+    if (!firestoreReady() || !db || !this.currentUid) return false;
     await deleteDoc(doc(db, 'listings', id));
     this.listingsSnapshot = this.listingsSnapshot.filter((listing) => listing.id !== id);
     return true;
   }
 
   static async markListingStatus(id: string, status: BookListing['status']): Promise<boolean> {
-    if (!firebaseReady() || !db || !this.currentUid) return false;
+    if (!firestoreReady() || !db || !this.currentUid) return false;
     await updateDoc(doc(db, 'listings', id), { status, updatedAt: formatNow() });
     this.listingsSnapshot = this.listingsSnapshot.map((listing) => (listing.id === id ? { ...listing, status } : listing));
     return true;
   }
 
   static async incrementView(id: string) {
-    if (!firebaseReady() || !db) return;
+    if (!firestoreReady() || !db) return;
     await updateDoc(doc(db, 'listings', id), { views: increment(1) });
   }
 
@@ -185,13 +207,13 @@ export class StorageService {
   }
 
   static async getFavorites(): Promise<string[]> {
-    if (!firebaseReady() || !db || !this.currentUid) return [];
+    if (!firestoreReady() || !db || !this.currentUid) return [];
     const snapshot = await getDocs(collection(db, 'users', this.currentUid, 'favorites'));
     return snapshot.docs.map((item) => item.id);
   }
 
   static async toggleFavorite(listingId: string): Promise<boolean> {
-    if (!firebaseReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لحفظ المفضلة.');
+    if (!firestoreReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لحفظ المفضلة.');
     const favoriteRef = doc(db, 'users', this.currentUid, 'favorites', listingId);
     const listingRef = doc(db, 'listings', listingId);
     let isNowFavorite = false;
@@ -210,7 +232,7 @@ export class StorageService {
   }
 
   static async getExchangeRequests(): Promise<ExchangeRequest[]> {
-    if (!firebaseReady() || !db || !this.currentUid) return [];
+    if (!firestoreReady() || !db || !this.currentUid) return [];
     const requesterQuery = query(collection(db, 'exchangeRequests'), where('requesterId', '==', this.currentUid));
     const sellerQuery = query(collection(db, 'exchangeRequests'), where('ownerId', '==', this.currentUid));
     const [requesterSnapshot, sellerSnapshot] = await Promise.all([getDocs(requesterQuery), getDocs(sellerQuery)]);
@@ -220,7 +242,7 @@ export class StorageService {
   }
 
   static async sendExchangeRequest(req: Omit<ExchangeRequest, 'id' | 'createdAt' | 'status'>): Promise<ExchangeRequest> {
-    if (!firebaseReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال طلب تبادل.');
+    if (!firestoreReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال طلب تبادل.');
     const requestRef = doc(collection(db, 'exchangeRequests'));
     const newRequest: ExchangeRequest = { ...req, id: requestRef.id, requesterId: this.currentUid, status: 'pending', createdAt: formatNow() };
     await setDoc(requestRef, asRecord(newRequest));
@@ -228,13 +250,13 @@ export class StorageService {
   }
 
   static async updateExchangeRequestStatus(id: string, status: ExchangeRequest['status']): Promise<boolean> {
-    if (!firebaseReady() || !db || !this.currentUid) return false;
+    if (!firestoreReady() || !db || !this.currentUid) return false;
     await updateDoc(doc(db, 'exchangeRequests', id), { status, updatedAt: formatNow() });
     return true;
   }
 
   static async getChats(): Promise<ChatConversation[]> {
-    if (!firebaseReady() || !db || !this.currentUid) return [];
+    if (!firestoreReady() || !db || !this.currentUid) return [];
     const chatsQuery = query(collection(db, 'chats'), where('participantIds', 'array-contains', this.currentUid), limit(50));
     const snapshot = await getDocs(chatsQuery);
     const conversations = snapshot.docs.map((item) => {
@@ -245,7 +267,7 @@ export class StorageService {
   }
 
   static async sendMessage(conversationId: string, text: string, senderUser: User, receiverUser: User, listing?: BookListing): Promise<ChatConversation> {
-    if (!firebaseReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال رسالة.');
+    if (!firestoreReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال رسالة.');
     const conversationRef = doc(db, 'chats', conversationId);
     const timestamp = formatNow();
     const messageId = `${this.currentUid}-${Date.now()}`;
@@ -268,7 +290,7 @@ export class StorageService {
   }
 
   static async getReports(): Promise<ReportItem[]> {
-    if (!firebaseReady() || !db || !this.currentUid) return [];
+    if (!firestoreReady() || !db || !this.currentUid) return [];
     try {
       const snapshot = await getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(100)));
       return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as ReportItem);
@@ -278,7 +300,7 @@ export class StorageService {
   }
 
   static async submitReport(report: Omit<ReportItem, 'id' | 'status' | 'createdAt'>): Promise<ReportItem> {
-    if (!firebaseReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال بلاغ.');
+    if (!firestoreReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال بلاغ.');
     const reportRef = doc(collection(db, 'reports'));
     const newReport: ReportItem = { ...report, id: reportRef.id, reporterId: this.currentUid, status: 'pending', createdAt: formatNow() } as ReportItem;
     await setDoc(reportRef, asRecord(newReport));
@@ -286,7 +308,7 @@ export class StorageService {
   }
 
   static async resolveReport(id: string, action: 'resolved' | 'dismissed'): Promise<boolean> {
-    if (!firebaseReady() || !db || !this.currentUid) return false;
+    if (!firestoreReady() || !db || !this.currentUid) return false;
     await updateDoc(doc(db, 'reports', id), { status: action, resolvedAt: formatNow(), resolvedBy: this.currentUid });
     return true;
   }
