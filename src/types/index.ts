@@ -63,7 +63,7 @@ export interface BookListing {
   views: number;
   favoritesCount: number;
   isFeatured?: boolean;
-  status: 'active' | 'reserved' | 'completed' | 'flagged';
+  status: 'pending' | 'active' | 'reserved' | 'completed' | 'flagged';
 }
 
 export interface ExchangeRequest {

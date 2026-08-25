@@ -156,7 +156,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
       views: 1,
       favoritesCount: 0,
       isFeatured: false,
-      status: 'active'
+      status: 'pending'
     };
 
     await onListingCreated(newListing);

@@ -4,7 +4,7 @@
 create extension if not exists pgcrypto;
 
 create type public.user_role as enum ('user', 'admin');
-create type public.listing_status as enum ('active', 'reserved', 'completed', 'flagged');
+create type public.listing_status as enum ('pending', 'active', 'reserved', 'completed', 'flagged');
 create type public.deal_type as enum ('sale', 'exchange', 'free');
 create type public.report_status as enum ('pending', 'resolved', 'dismissed');
 
