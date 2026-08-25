@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Kitabi">
+  <rect width="64" height="64" rx="16" fill="#0b192c"/>
+  <path d="M16 18.5c0-2.5 2-4.5 4.5-4.5H48v32.5H20.5A4.5 4.5 0 0 0 16 51V18.5Z" fill="#10b981"/>
+  <path d="M16 18.5c0-2.5 2-4.5 4.5-4.5H32v32.5H20.5A4.5 4.5 0 0 0 16 51V18.5Z" fill="#fbbf24" opacity=".96"/>
+  <path d="M32 14h12.5a4.5 4.5 0 0 1 4.5 4.5V51a4.5 4.5 0 0 0-4.5-4.5H32V14Z" fill="#34d399"/>
+  <path d="M22 22h7M22 28h7M37 22h7M37 28h7" stroke="#0b192c" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
