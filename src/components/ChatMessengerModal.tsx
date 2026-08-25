@@ -27,12 +27,13 @@ export const ChatMessengerModal: React.FC<ChatMessengerModalProps> = ({
   const convId = targetUser ? `chat-${[currentUser.id, targetUser.id].sort().join('-')}` : '';
 
   useEffect(() => {
-    if (isOpen && targetUser) {
-      const chats = StorageService.getChats();
-      let conv = chats.find(c => c.id === convId);
-      if (!conv) {
-        // Create initial
-        conv = {
+    let cancelled = false;
+    const loadConversation = async () => {
+      if (!isOpen || !targetUser) return;
+      const chats = await StorageService.getChats();
+      const existing = chats.find((chat) => chat.id === convId);
+      if (!cancelled) {
+        setConversation(existing || {
           id: convId,
           listingId: targetBook?.id,
           listingTitle: targetBook?.title,
@@ -40,23 +41,15 @@ export const ChatMessengerModal: React.FC<ChatMessengerModalProps> = ({
           listingPrice: targetBook?.price,
           dealType: targetBook?.dealType,
           participant: targetUser,
-          lastMessage: 'مرحباً، بدأت المحادثة',
-          lastMessageTime: 'الآن',
+          lastMessage: '',
+          lastMessageTime: '',
           unreadCount: 0,
-          messages: [
-            {
-              id: `init-${Date.now()}`,
-              senderId: targetUser.id,
-              receiverId: currentUser.id,
-              text: `مرحباً أخي، شكراً لاهتمامك. الكتاب ${targetBook ? `"${targetBook.title}"` : ''} متوفر للتسليم.`,
-              timestamp: '10:00',
-              isRead: true
-            }
-          ]
-        };
+          messages: [],
+        });
       }
-      setConversation(conv);
-    }
+    };
+    void loadConversation();
+    return () => { cancelled = true; };
   }, [isOpen, targetUser, convId, targetBook]);
 
   useEffect(() => {
@@ -65,37 +58,12 @@ export const ChatMessengerModal: React.FC<ChatMessengerModalProps> = ({
 
   if (!isOpen || !targetUser) return null;
 
-  const handleSend = (textToSend?: string) => {
+  const handleSend = async (textToSend?: string) => {
     const txt = textToSend || inputText;
     if (!txt.trim()) return;
-
-    const updated = StorageService.sendMessage(
-      convId,
-      txt.trim(),
-      currentUser,
-      targetUser,
-      targetBook || undefined
-    );
-    setConversation({ ...updated });
+    const updated = await StorageService.sendMessage(convId, txt.trim(), currentUser, targetUser, targetBook || undefined);
+    setConversation((previous) => ({ ...(previous || updated), ...updated, messages: [...(previous?.messages || []), ...(updated.messages || [])] }));
     setInputText('');
-
-    // Simulate quick realistic seller auto-reply after 1.2s if this is a first prompt
-    setTimeout(() => {
-      const replyOptions = [
-        "وعليكم السلام، نعم الكتاب ما زال متوفراً وبحالة جيدة جداً.",
-        "أهلاً وسهلاً، يمكننا اللقاء غداً بعد الظهر إن شاء الله للتسليم يداً بيد.",
-        "موافق أخي الكريم، اتصل بي على رقمي للتنسيق الدقيق للمكان."
-      ];
-      const randomReply = replyOptions[Math.floor(Math.random() * replyOptions.length)];
-      const botUpdated = StorageService.sendMessage(
-        convId,
-        randomReply,
-        targetUser,
-        currentUser,
-        targetBook || undefined
-      );
-      setConversation({ ...botUpdated });
-    }, 1400);
   };
 
   const quickReplies = [

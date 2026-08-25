@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { 
   BookOpen, 
   Search, 
@@ -26,6 +27,9 @@ import {
   ExchangeRequest 
 } from './types';
 import { StorageService } from './services/storageService';
+import { auth, isFirebaseConfigured } from './lib/firebase';
+import { PhoneAuthModal } from './components/PhoneAuthModal';
+import { LegalPage } from './components/LegalPage';
 import { EDUCATION_LEVELS, WILAYAS } from './data/algerianData';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
@@ -63,13 +67,16 @@ const initialFilters: FilterState = {
 
 export default function App() {
   // Navigation & Language
-  const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'exchange' | 'profile' | 'admin'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'exchange' | 'profile' | 'admin' | 'terms' | 'privacy'>('home');
   const [lang, setLang] = useState<'ar' | 'fr'>('ar');
 
   // Application Data States
-  const [currentUser, setCurrentUser] = useState<User>(StorageService.getCurrentUser());
-  const [listings, setListings] = useState<BookListing[]>(StorageService.getListings());
-  const [favorites, setFavorites] = useState<string[]>(StorageService.getFavorites());
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [listings, setListings] = useState<BookListing[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [chats, setChats] = useState<any[]>([]);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
 
   // Search Results Caching & History States
@@ -95,7 +102,8 @@ export default function App() {
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
 
   // Stats
-  const [stats, setStats] = useState(StorageService.getPlatformStats());
+  const [stats, setStats] = useState(StorageService.getPlatformStats([]));
+  const isAdmin = currentUser?.role === 'admin';
 
   // Language & RTL Setup
   useEffect(() => {
@@ -103,12 +111,73 @@ export default function App() {
     document.documentElement.lang = lang;
   }, [lang]);
 
+  // Firebase Authentication lifecycle
+  useEffect(() => {
+    if (!isFirebaseConfigured || !auth) {
+      setAuthLoading(false);
+      StorageService.setAuthUser(null, null);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      try {
+        if (firebaseUser) {
+          const profile = await StorageService.getOrCreateUserProfile(firebaseUser);
+          StorageService.setAuthUser(firebaseUser, profile);
+          setCurrentUser(profile);
+        } else {
+          StorageService.setAuthUser(null, null);
+          setCurrentUser(null);
+        }
+      } catch (error) {
+        console.error('Firebase auth profile error', error);
+        setCurrentUser(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Guard direct URL access to protected routes
+  useEffect(() => {
+    if (authLoading) return;
+    const route = window.location.pathname.replace(/^\//, '').split('/')[0];
+    if (route === 'admin') {
+      if (isAdmin) setCurrentView('admin');
+      else window.history.replaceState({}, '', '/');
+      return;
+    }
+    if (route === 'terms' || route === 'privacy' || route === 'marketplace' || route === 'exchange') {
+      setCurrentView(route);
+    }
+  }, [authLoading, isAdmin]);
+
+  // Load public listings and private user data from Firestore
+  useEffect(() => {
+    let cancelled = false;
+    const loadData = async () => {
+      const [remoteListings, remoteFavorites, remoteChats] = await Promise.all([
+        StorageService.getListings(),
+        currentUser ? StorageService.getFavorites() : Promise.resolve([]),
+        currentUser ? StorageService.getChats() : Promise.resolve([]),
+      ]);
+      if (!cancelled) {
+        setListings(remoteListings);
+        setFavorites(remoteFavorites);
+        setChats(remoteChats);
+        setStats(StorageService.getPlatformStats(remoteListings));
+      }
+    };
+    void loadData();
+    return () => { cancelled = true; };
+  }, [currentUser]);
+
   // Restore last marketplace filters on first mount
   useEffect(() => {
     const saved = StorageService.getLastMarketplaceFilters();
-    if (saved) {
-      setFilters(saved);
-    }
+    if (saved) setFilters(saved);
   }, []);
 
   // Search Results Local Caching Engine
@@ -159,7 +228,7 @@ export default function App() {
       wilayaCode: item.wilayaCode || 0,
       dealType: item.dealType || 'all'
     }));
-    setCurrentView('marketplace');
+    navigate('marketplace');
   };
 
   const handleRemoveRecentSearch = (id: string) => {
@@ -172,19 +241,25 @@ export default function App() {
     setRecentSearches([]);
   };
 
-  // Refresh listings & stats from storage
-  const refreshData = () => {
-    setListings(StorageService.getListings());
-    setFavorites(StorageService.getFavorites());
-    setStats(StorageService.getPlatformStats());
+  // Refresh listings & stats from Firestore
+  const refreshData = async () => {
+    const [nextListings, nextFavorites, nextChats] = await Promise.all([
+      StorageService.getListings(),
+      currentUser ? StorageService.getFavorites() : Promise.resolve([]),
+      currentUser ? StorageService.getChats() : Promise.resolve([]),
+    ]);
+    setListings(nextListings);
+    setFavorites(nextFavorites);
+    setChats(nextChats);
+    setStats(StorageService.getPlatformStats(nextListings));
     setRecentSearches(StorageService.getRecentSearches());
   };
 
   // Toggle favorite
-  const handleToggleFavorite = (listingId: string) => {
-    StorageService.toggleFavorite(listingId);
-    setFavorites([...StorageService.getFavorites()]);
-    setListings([...StorageService.getListings()]);
+  const handleToggleFavorite = async (listingId: string) => {
+    if (!currentUser) { setIsAuthOpen(true); return; }
+    await StorageService.toggleFavorite(listingId);
+    await refreshData();
   };
 
   // Filter updates
@@ -203,20 +278,20 @@ export default function App() {
       searchQuery: query,
       level: level !== undefined ? level : prev.level
     }));
-    setCurrentView('marketplace');
+    navigate('marketplace');
   };
 
   // Book Selection
-  const handleSelectBook = (book: BookListing) => {
-    StorageService.incrementView(book.id);
+  const handleSelectBook = async (book: BookListing) => {
+    void StorageService.incrementView(book.id);
     setSelectedBook(book);
     setIsDetailsOpen(true);
   };
 
   // Creation callback
-  const handleListingCreated = (newListing: BookListing) => {
-    StorageService.saveListing(newListing);
-    refreshData();
+  const handleListingCreated = async (newListing: BookListing) => {
+    await StorageService.saveListing(newListing);
+    await refreshData();
     setSelectedBook(newListing);
     setIsDetailsOpen(true);
   };
@@ -236,7 +311,20 @@ export default function App() {
   const latestListings = listings.filter(l => l.status === 'active').slice(0, 8);
   const freeListings = listings.filter(l => l.dealType === 'free' && l.status === 'active');
 
-  const unreadChatCount = StorageService.getChats().reduce((acc, c) => acc + c.unreadCount, 0);
+  const unreadChatCount = chats.reduce((acc, chat) => acc + chat.unreadCount, 0);
+
+  const navigate = (view: 'home' | 'marketplace' | 'exchange' | 'profile' | 'admin' | 'terms' | 'privacy') => {
+    if (view === 'admin' && !isAdmin) {
+      setIsAuthOpen(true);
+      return;
+    }
+    if ((view === 'profile' || view === 'admin') && !currentUser) {
+      setIsAuthOpen(true);
+      return;
+    }
+    setCurrentView(view);
+    window.history.replaceState({}, '', view === 'home' ? '/' : `/${view}`);
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans pb-20 md:pb-0">
@@ -244,14 +332,16 @@ export default function App() {
       {/* Top Navbar */}
       <Navbar
         currentUser={currentUser}
-        onOpenCreateListing={() => setIsCreateOpen(true)}
-        onNavigate={setCurrentView}
+        onOpenCreateListing={() => currentUser ? setIsCreateOpen(true) : setIsAuthOpen(true)}
+        onNavigate={navigate}
         currentView={currentView}
         selectedWilayaCode={filters.wilayaCode}
         onSelectWilaya={(code) => handleFilterChange({ wilayaCode: code })}
         lang={lang}
         onToggleLang={() => setLang(lang === 'ar' ? 'fr' : 'ar')}
         unreadCount={unreadChatCount}
+        isAdmin={isAdmin}
+        onOpenAuth={() => setIsAuthOpen(true)}
       />
 
       {/* Main App Views */}
@@ -264,7 +354,7 @@ export default function App() {
             {/* Hero Search & Live Impact */}
             <HeroSearch
               onSearch={handleHeroSearch}
-              onOpenCreateListing={() => setIsCreateOpen(true)}
+              onOpenCreateListing={() => currentUser ? setIsCreateOpen(true) : setIsAuthOpen(true)}
               stats={stats}
               lang={lang}
               selectedWilayaCode={filters.wilayaCode}
@@ -292,7 +382,7 @@ export default function App() {
                       key={lvl.id}
                       onClick={() => {
                         handleFilterChange({ level: lvl.id });
-                        setCurrentView('marketplace');
+                        navigate('marketplace');
                       }}
                       className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 text-slate-700 border border-slate-200 hover:border-emerald-300 transition-all flex items-center gap-1.5"
                     >
@@ -316,7 +406,7 @@ export default function App() {
                     </h2>
                   </div>
                   <button
-                    onClick={() => setCurrentView('marketplace')}
+                    onClick={() => navigate('marketplace')}
                     className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
                   >
                     <span>عرض الكل</span>
@@ -351,7 +441,7 @@ export default function App() {
                   </h2>
                 </div>
                 <button
-                  onClick={() => setCurrentView('marketplace')}
+                  onClick={() => navigate('marketplace')}
                   className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
                 >
                   <span>تصفح كل الكتب ({listings.length})</span>
@@ -391,7 +481,7 @@ export default function App() {
                     <button
                       onClick={() => {
                         handleFilterChange({ dealType: 'free' });
-                        setCurrentView('marketplace');
+                        navigate('marketplace');
                       }}
                       className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow transition-colors shrink-0"
                     >
@@ -433,7 +523,7 @@ export default function App() {
 
                 <button
                   id="home-promo-exchange-btn"
-                  onClick={() => setCurrentView('exchange')}
+                    onClick={() => navigate('exchange')}
                   className="bg-white text-emerald-950 hover:bg-emerald-50 font-black text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-lg flex items-center gap-2 transition-transform active:scale-95 shrink-0"
                 >
                   <RefreshCw className="w-4 h-4 text-emerald-700 animate-spin-slow" />
@@ -462,7 +552,7 @@ export default function App() {
                 <button
                   onClick={() => {
                     alert('مرحباً بك! يمكنك التبديل لحساب "مكتبة النجاح المعتمدة" من صفحة الحساب لتجربة واجهة المكتبات.');
-                    setCurrentView('profile');
+                    navigate('profile');
                   }}
                   className="bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-xs px-5 py-3 rounded-2xl border border-slate-700 transition-colors shrink-0"
                 >
@@ -647,32 +737,34 @@ export default function App() {
         )}
 
         {/* VIEW 4: USER PROFILE & LISTINGS */}
-        {currentView === 'profile' && (
+        {currentView === 'profile' && currentUser && (
           <UserProfileView
             currentUser={currentUser}
-            onSwitchUser={(u) => {
-              StorageService.setCurrentUser(u);
-              setCurrentUser(u);
-            }}
+            onSwitchUser={() => undefined}
             listings={listings}
             favorites={favorites}
             onToggleFavorite={handleToggleFavorite}
             onSelectBook={handleSelectBook}
             onOpenCreateListing={() => setIsCreateOpen(true)}
             onOpenChatWithUser={(target) => handleOpenChat(target)}
-            onNavigateToAdmin={() => setCurrentView('admin')}
+            onNavigateToAdmin={() => navigate('admin')}
+            onSignOut={() => { if (auth) void signOut(auth); navigate('home'); }}
+            isAdmin={isAdmin}
             lang={lang}
           />
         )}
 
         {/* VIEW 5: ADMIN DASHBOARD */}
-        {currentView === 'admin' && (
+        {currentView === 'admin' && isAdmin && (
           <AdminDashboard
             listings={listings}
-            onBackToApp={() => setCurrentView('home')}
+            onBackToApp={() => navigate('home')}
             lang={lang}
           />
         )}
+
+        {currentView === 'terms' && <LegalPage type="terms" onBack={() => navigate('home')} lang={lang} />}
+        {currentView === 'privacy' && <LegalPage type="privacy" onBack={() => navigate('home')} lang={lang} />}
 
       </main>
 
@@ -728,15 +820,17 @@ export default function App() {
               <p className="text-slate-400 text-xs leading-relaxed">
                 من الجزائر، وهران، قسنطينة، سطيف، عنابة، تيزي وزو، باتنة إلى أدرار وتمنراست.
               </p>
-              <div className="pt-2">
-                <button
-                  onClick={() => setCurrentView('admin')}
-                  className="text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1 text-[11px]"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>دخول الإدارة والرقابة</span>
-                </button>
-              </div>
+              {isAdmin && (
+                <div className="pt-2">
+                  <button
+                    onClick={() => navigate('admin')}
+                    className="text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1 text-[11px]"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>دخول الإدارة والرقابة</span>
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>
@@ -746,11 +840,11 @@ export default function App() {
               © 2025 كِتابي (Ktabi.dz) — جميع الحقوق محفوظة لخدمة التعليم والعائلات الجزائرية.
             </div>
             <div className="flex items-center gap-4">
-              <span>سياسة الخصوصية</span>
+              <button onClick={() => navigate('privacy')} className="hover:text-white transition-colors">سياسة الخصوصية</button>
               <span>•</span>
-              <span>شروط الاستخدام</span>
+              <button onClick={() => navigate('terms')} className="hover:text-white transition-colors">شروط الاستخدام</button>
               <span>•</span>
-              <span>تواصل مع الإدارة</span>
+              <button onClick={() => window.location.href = 'mailto:contact@ktabi.dz'} className="hover:text-white transition-colors">تواصل مع الإدارة</button>
             </div>
           </div>
 
@@ -760,8 +854,8 @@ export default function App() {
       {/* Mobile Bottom Navigation Bar */}
       <BottomNav
         currentView={currentView}
-        onNavigate={setCurrentView}
-        onOpenCreateListing={() => setIsCreateOpen(true)}
+        onNavigate={navigate}
+        onOpenCreateListing={() => currentUser ? setIsCreateOpen(true) : setIsAuthOpen(true)}
         lang={lang}
         unreadCount={unreadChatCount}
       />
@@ -774,66 +868,82 @@ export default function App() {
         isFavorite={selectedBook ? favorites.includes(selectedBook.id) : false}
         onToggleFavorite={handleToggleFavorite}
         currentUser={currentUser}
-        onOpenChat={(b, seller) => {
-          setIsDetailsOpen(false);
-          handleOpenChat(seller, b);
-        }}
-        onOpenExchangeModal={(b) => {
-          setTradeTargetBook(b);
-          setIsTradeModalOpen(true);
-        }}
-        onOpenReportModal={(b) => {
-          setReportTargetBook(b);
-          setIsReportModalOpen(true);
-        }}
+          onOpenChat={(b, seller) => {
+            if (!currentUser) { setIsAuthOpen(true); return; }
+            setIsDetailsOpen(false);
+            handleOpenChat(seller, b);
+          }}
+          onOpenExchangeModal={(b) => {
+            if (!currentUser) { setIsAuthOpen(true); return; }
+            setTradeTargetBook(b);
+            setIsTradeModalOpen(true);
+          }}
+          onOpenReportModal={(b) => {
+            if (!currentUser) { setIsAuthOpen(true); return; }
+            setReportTargetBook(b);
+            setIsReportModalOpen(true);
+          }}
         onSelectRelatedBook={handleSelectBook}
-        relatedBooks={
-          selectedBook
-            ? listings.filter(l => l.id !== selectedBook.id && (l.level === selectedBook.level || l.wilayaCode === selectedBook.wilayaCode))
-            : []
-        }
+          relatedBooks={
+            selectedBook
+              ? listings.filter(l => l.id !== selectedBook.id && (l.level === selectedBook.level || l.wilayaCode === selectedBook.wilayaCode))
+              : []
+          }
         lang={lang}
       />
 
       {/* MODAL 2: Create Listing in Under 2 Minutes */}
-      <CreateListingModal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        currentUser={currentUser}
-        onListingCreated={handleListingCreated}
-        lang={lang}
-      />
+      {currentUser && (
+        <CreateListingModal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          currentUser={currentUser}
+          onListingCreated={handleListingCreated}
+          lang={lang}
+        />
+      )}
 
       {/* MODAL 3: Propose Exchange Trade */}
-      <ExchangeTradeModal
-        targetBook={tradeTargetBook}
-        isOpen={isTradeModalOpen}
-        onClose={() => setIsTradeModalOpen(false)}
-        currentUser={currentUser}
-        userListings={listings.filter(l => l.sellerId === currentUser.id)}
-        onTradeProposed={() => {
-          refreshData();
-        }}
-        lang={lang}
-      />
+      {currentUser && (
+        <ExchangeTradeModal
+          targetBook={tradeTargetBook}
+          isOpen={isTradeModalOpen}
+          onClose={() => setIsTradeModalOpen(false)}
+          currentUser={currentUser}
+          userListings={listings.filter(l => l.sellerId === currentUser.id)}
+          onTradeProposed={() => { void refreshData(); }}
+          lang={lang}
+        />
+      )}
 
       {/* MODAL 4: In-App Chat Messenger */}
-      <ChatMessengerModal
-        isOpen={isChatModalOpen}
-        onClose={() => setIsChatModalOpen(false)}
-        currentUser={currentUser}
-        targetUser={chatTargetUser}
-        targetBook={chatTargetBook}
-        lang={lang}
-      />
+      {currentUser && (
+        <ChatMessengerModal
+          isOpen={isChatModalOpen}
+          onClose={() => setIsChatModalOpen(false)}
+          currentUser={currentUser}
+          targetUser={chatTargetUser}
+          targetBook={chatTargetBook}
+          lang={lang}
+        />
+      )}
 
       {/* MODAL 5: Report Listing */}
-      <ReportModal
-        book={reportTargetBook}
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        currentUser={currentUser}
+      {currentUser && (
+        <ReportModal
+          book={reportTargetBook}
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          currentUser={currentUser}
+          lang={lang}
+        />
+      )}
+
+      <PhoneAuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
         lang={lang}
+        onAuthenticated={() => void refreshData()}
       />
 
       {/* DRAWER: Advanced Filters Sheet */}

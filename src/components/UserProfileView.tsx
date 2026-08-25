@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   User as UserIcon, 
   BookOpen, 
@@ -14,7 +14,6 @@ import {
   Check, 
   PlusCircle, 
   ShieldCheck, 
-  Users, 
   LogOut,
   Building2,
   SlidersHorizontal,
@@ -34,6 +33,8 @@ interface UserProfileViewProps {
   onOpenCreateListing: () => void;
   onOpenChatWithUser: (targetUser: User, book?: BookListing) => void;
   onNavigateToAdmin: () => void;
+  onSignOut: () => void;
+  isAdmin?: boolean;
   lang: 'ar' | 'fr';
 }
 
@@ -47,31 +48,44 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   onOpenCreateListing,
   onOpenChatWithUser,
   onNavigateToAdmin,
+  onSignOut,
+  isAdmin = false,
   lang
 }) => {
-  const [activeTab, setActiveTab] = useState<'my_listings' | 'favorites' | 'exchanges' | 'messages' | 'switch_account'>('my_listings');
-  
-  const demoUsers = StorageService.getAllDemoUsers();
-  const exchangeRequests = StorageService.getExchangeRequests();
-  const chats = StorageService.getChats();
+  const [activeTab, setActiveTab] = useState<'my_listings' | 'favorites' | 'exchanges' | 'messages'>('my_listings');
+  const [exchangeRequests, setExchangeRequests] = useState<ExchangeRequest[]>([]);
+  const [chats, setChats] = useState<ChatConversation[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadPrivateData = async () => {
+      const [requests, conversations] = await Promise.all([StorageService.getExchangeRequests(), StorageService.getChats()]);
+      if (!cancelled) {
+        setExchangeRequests(requests);
+        setChats(conversations);
+      }
+    };
+    void loadPrivateData();
+    return () => { cancelled = true; };
+  }, [currentUser.id]);
 
   const myListings = listings.filter(l => l.sellerId === currentUser.id);
   const favoriteListings = listings.filter(l => favorites.includes(l.id));
 
-  const handleMarkStatus = (id: string, status: 'active' | 'completed' | 'reserved') => {
-    StorageService.markListingStatus(id, status);
-    window.location.reload(); // Quick refresh state
+  const handleMarkStatus = async (id: string, status: 'active' | 'completed' | 'reserved') => {
+    await StorageService.markListingStatus(id, status);
+    window.location.reload();
   };
 
-  const handleDeleteListing = (id: string) => {
+  const handleDeleteListing = async (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا الإعلان؟')) {
-      StorageService.deleteListing(id);
+      await StorageService.deleteListing(id);
       window.location.reload();
     }
   };
 
-  const handleUpdateExchangeStatus = (reqId: string, status: 'accepted' | 'rejected' | 'completed') => {
-    StorageService.updateExchangeRequestStatus(reqId, status);
+  const handleUpdateExchangeStatus = async (reqId: string, status: 'accepted' | 'rejected' | 'completed') => {
+    await StorageService.updateExchangeRequestStatus(reqId, status);
     window.location.reload();
   };
 
@@ -142,12 +156,21 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
               <PlusCircle className="w-4 h-4" />
               <span>إضافة إعلان جديد</span>
             </button>
+            {isAdmin && (
+              <button
+                onClick={onNavigateToAdmin}
+                className="bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs px-3.5 py-2.5 rounded-xl border border-slate-700 flex items-center gap-1"
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <span>لوحة الإدارة</span>
+              </button>
+            )}
             <button
-              onClick={onNavigateToAdmin}
-              className="bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs px-3.5 py-2.5 rounded-xl border border-slate-700 flex items-center gap-1"
+              onClick={onSignOut}
+              className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-200 font-bold text-xs px-3.5 py-2.5 rounded-xl border border-rose-400/20 flex items-center gap-1"
             >
-              <ShieldCheck className="w-4 h-4 text-amber-400" />
-              <span>لوحة الإدارة</span>
+              <LogOut className="w-4 h-4" />
+              <span>خروج</span>
             </button>
           </div>
 
@@ -208,19 +231,6 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
         >
           <MessageSquare className="w-4 h-4" />
           <span>الرسائل ({chats.length})</span>
-        </button>
-
-        <button
-          id="profile-tab-switch"
-          onClick={() => setActiveTab('switch_account')}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${
-            activeTab === 'switch_account'
-              ? 'bg-amber-500 text-slate-950 shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>تبديل الحساب التجريبي</span>
         </button>
 
       </div>
@@ -428,51 +438,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           </div>
         )}
 
-        {/* Tab 5: Switch Demo Account */}
-        {activeTab === 'switch_account' && (
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 space-y-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 font-serif">تبديل حساب المستخدم التجريبي للتجربة</h3>
-              <p className="text-xs text-slate-500">اختر من النماذج الجاهزة لتجربة التطبيق من وجهة نظر طالب، ولي أمر، أو صاحب مكتبة.</p>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {demoUsers.map((u) => (
-                <div
-                  key={u.id}
-                  onClick={() => {
-                    onSwitchUser(u);
-                    setActiveTab('my_listings');
-                  }}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between gap-3 ${
-                    currentUser.id === u.id
-                      ? 'border-emerald-600 bg-emerald-50/50 shadow-sm'
-                      : 'border-slate-200 hover:border-slate-300 bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <img src={u.avatar} alt="" className="w-12 h-12 rounded-xl object-cover" />
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-sm text-slate-900">{u.name}</span>
-                        {u.isBookstore && (
-                          <span className="text-[9px] bg-amber-500 text-slate-950 font-bold px-1.5 py-0.2 rounded">مكتبة</span>
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-500">{u.municipality} • {u.phone}</div>
-                    </div>
-                  </div>
-
-                  {currentUser.id === u.id && (
-                    <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg">
-                      الحساب الحالي ✓
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
       </div>
 

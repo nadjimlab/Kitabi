@@ -1,765 +1,390 @@
-import { 
-  BookListing, 
-  User, 
-  ExchangeRequest, 
-  ChatConversation, 
-  ChatMessage, 
-  ReportItem, 
-  FilterState, 
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  increment,
+  limit,
+  orderBy,
+  query,
+  runTransaction,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
+import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { User as FirebaseUser } from 'firebase/auth';
+import { db, isFirebaseConfigured, storage } from '../lib/firebase';
+import {
+  BookListing,
+  User,
+  ExchangeRequest,
+  ChatConversation,
+  ChatMessage,
+  ReportItem,
+  FilterState,
   EducationLevel,
   RecentSearchItem,
-  CachedSearchEntry
+  CachedSearchEntry,
 } from '../types';
-import { INITIAL_LISTINGS, INITIAL_USERS, INITIAL_EXCHANGE_REQUESTS, WILAYAS } from '../data/algerianData';
+import { INITIAL_LISTINGS, INITIAL_USERS } from '../data/algerianData';
 
-const LISTINGS_KEY = 'ktabi_listings_v1';
-const FAVORITES_KEY = 'ktabi_favorites_v1';
-const CURRENT_USER_KEY = 'ktabi_current_user_v1';
-const REQUESTS_KEY = 'ktabi_exchange_requests_v1';
-const CHATS_KEY = 'ktabi_chats_v1';
-const REPORTS_KEY = 'ktabi_reports_v1';
 const SEARCH_CACHE_KEY = 'ktabi_search_cache_v1';
 const RECENT_SEARCHES_KEY = 'ktabi_recent_searches_v1';
 const LAST_FILTERS_KEY = 'ktabi_last_filters_v1';
-
-// Cache validity: 30 minutes (1800000 ms)
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const MAX_CACHE_ENTRIES = 20;
 const MAX_RECENT_SEARCHES = 12;
 
+function asRecord<T extends object>(value: T) {
+  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+}
+
+function formatNow() {
+  return new Date().toLocaleString('ar-DZ', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function firebaseReady() {
+  return Boolean(isFirebaseConfigured && db && storage);
+}
+
 export class StorageService {
-  // Initialize storage if empty
-  static init() {
-    if (!localStorage.getItem(LISTINGS_KEY)) {
-      localStorage.setItem(LISTINGS_KEY, JSON.stringify(INITIAL_LISTINGS));
-    }
-    if (!localStorage.getItem(FAVORITES_KEY)) {
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(["book-1", "book-3"]));
-    }
-    if (!localStorage.getItem(CURRENT_USER_KEY)) {
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(INITIAL_USERS[0]));
-    }
-    if (!localStorage.getItem(REQUESTS_KEY)) {
-      localStorage.setItem(REQUESTS_KEY, JSON.stringify(INITIAL_EXCHANGE_REQUESTS));
-    }
-    if (!localStorage.getItem(CHATS_KEY)) {
-      const initialChats: ChatConversation[] = [
-        {
-          id: "chat-1",
-          listingId: "book-1",
-          listingTitle: "الميسر في الرياضيات 3 ثانوي",
-          listingPrice: 450,
-          dealType: "sale",
-          listingPhoto: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
-          participant: INITIAL_USERS[1], // Fatima
-          lastMessage: "السلام عليكم أخي، هل يمكن التسليم غداً في باب الزوار؟",
-          lastMessageTime: "14:30",
-          unreadCount: 1,
-          messages: [
-            {
-              id: "m-1",
-              senderId: INITIAL_USERS[1].id,
-              receiverId: INITIAL_USERS[0].id,
-              text: "السلام عليكم أخي أمين، مهتمة بكتاب الرياضيات، هل النسخة كاملة بدون تمزيق؟",
-              timestamp: "14:20",
-              isRead: true
-            },
-            {
-              id: "m-2",
-              senderId: INITIAL_USERS[0].id,
-              receiverId: INITIAL_USERS[1].id,
-              text: "وعليكم السلام ورحمة الله، نعم أختي الكتاب بحالة شبه جديدة تماماً.",
-              timestamp: "14:25",
-              isRead: true
-            },
-            {
-              id: "m-3",
-              senderId: INITIAL_USERS[1].id,
-              receiverId: INITIAL_USERS[0].id,
-              text: "ممتاز، هل يمكن التسليم غداً في باب الزوار أمام محطة الترامواي؟",
-              timestamp: "14:30",
-              isRead: false
-            }
-          ]
-        }
-      ];
-      localStorage.setItem(CHATS_KEY, JSON.stringify(initialChats));
-    }
-    if (!localStorage.getItem(REPORTS_KEY)) {
-      const initialReports: ReportItem[] = [
-        {
-          id: "rep-1",
-          listingId: "book-4",
-          listingTitle: "سلسلة الهباج في العلوم الفيزيائية",
-          sellerName: "مكتبة النجاح المعتمدة",
-          reporterName: "مستخدم تجريبي",
-          reason: "wrong_info",
-          reasonLabel: "معلومات غير مطابقة للنسخة",
-          details: "الطبعة المصورة ليست لسنة 2024 بل 2022",
-          status: "pending",
-          createdAt: "منذ 3 ساعات"
-        }
-      ];
-      localStorage.setItem(REPORTS_KEY, JSON.stringify(initialReports));
-    }
+  private static currentUser: User | null = null;
+  private static currentUid: string | null = null;
+  private static listingsSnapshot: BookListing[] = INITIAL_LISTINGS;
+
+  static setAuthUser(firebaseUser: FirebaseUser | null, profile: User | null) {
+    this.currentUid = firebaseUser?.uid ?? null;
+    this.currentUser = profile;
   }
 
-  // --- Current User Management ---
-  static getCurrentUser(): User {
-    this.init();
-    try {
-      const stored = localStorage.getItem(CURRENT_USER_KEY);
-      return stored ? JSON.parse(stored) : INITIAL_USERS[0];
-    } catch {
-      return INITIAL_USERS[0];
-    }
+  static getCurrentUser(): User | null {
+    return this.currentUser;
   }
 
-  static setCurrentUser(user: User) {
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+  static async getOrCreateUserProfile(firebaseUser: FirebaseUser): Promise<User> {
+    if (!firebaseReady() || !db) throw new Error('Firebase غير مهيأ.');
+    const userRef = doc(db, 'users', firebaseUser.uid);
+    const snapshot = await getDoc(userRef);
+    if (snapshot.exists()) {
+      const profile = { id: snapshot.id, ...snapshot.data() } as User;
+      this.currentUser = profile;
+      return profile;
+    }
+
+    const profile: User = {
+      id: firebaseUser.uid,
+      name: firebaseUser.displayName || 'مستخدم كتابي',
+      email: firebaseUser.email || '',
+      phone: firebaseUser.phoneNumber || '',
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.phoneNumber || 'K')}&background=0b192c&color=fff`,
+      wilayaCode: 16,
+      municipality: 'الجزائر الوسطى',
+      rating: 5,
+      reviewsCount: 0,
+      isVerified: true,
+      isBookstore: false,
+      joinedDate: new Date().toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long' }),
+      bio: '',
+      role: 'user',
+    };
+    await setDoc(userRef, profile);
+    this.currentUser = profile;
+    return profile;
+  }
+
+  static async updateUserProfile(user: User) {
+    if (!firebaseReady() || !db || !this.currentUid) return;
+    await setDoc(doc(db, 'users', this.currentUid), asRecord(user), { merge: true });
+    this.currentUser = user;
+  }
+
+  static async getAllUsers(): Promise<User[]> {
+    if (!firebaseReady() || !db || !this.currentUid) return [];
+    const snapshot = await getDocs(collection(db, 'users'));
+    return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as User);
   }
 
   static getAllDemoUsers(): User[] {
-    return INITIAL_USERS;
+    return [];
   }
 
-  // --- Listings Management ---
-  static getListings(): BookListing[] {
-    this.init();
+  static async getListings(): Promise<BookListing[]> {
+    if (!firebaseReady() || !db) {
+      this.listingsSnapshot = INITIAL_LISTINGS;
+      return INITIAL_LISTINGS;
+    }
     try {
-      const stored = localStorage.getItem(LISTINGS_KEY);
-      return stored ? JSON.parse(stored) : INITIAL_LISTINGS;
-    } catch {
+      const snapshot = await getDocs(collection(db, 'listings'));
+      const listings = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as BookListing);
+      this.listingsSnapshot = listings.length > 0 ? listings : INITIAL_LISTINGS;
+      return this.listingsSnapshot;
+    } catch (error) {
+      console.error('Firestore listings read failed', error);
+      this.listingsSnapshot = INITIAL_LISTINGS;
       return INITIAL_LISTINGS;
     }
   }
 
-  static getListingById(id: string): BookListing | undefined {
-    const listings = this.getListings();
-    return listings.find(l => l.id === id);
+  static async getListingById(id: string): Promise<BookListing | undefined> {
+    if (!firebaseReady() || !db) return this.listingsSnapshot.find((listing) => listing.id === id);
+    const snapshot = await getDoc(doc(db, 'listings', id));
+    return snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as BookListing) : undefined;
   }
 
-  static saveListing(listing: BookListing): BookListing {
-    const listings = this.getListings();
-    const existingIndex = listings.findIndex(l => l.id === listing.id);
-    if (existingIndex >= 0) {
-      listings[existingIndex] = listing;
-    } else {
-      listings.unshift(listing);
-    }
-    localStorage.setItem(LISTINGS_KEY, JSON.stringify(listings));
-    this.invalidateSearchCache();
+  static async saveListing(listing: BookListing): Promise<BookListing> {
+    if (!firebaseReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول قبل نشر إعلان.');
+    await setDoc(doc(db, 'listings', listing.id), {
+      ...asRecord(listing),
+      sellerId: this.currentUid,
+      updatedAt: formatNow(),
+    });
+    this.listingsSnapshot = [listing, ...this.listingsSnapshot.filter((item) => item.id !== listing.id)];
     return listing;
   }
 
-  static deleteListing(id: string): boolean {
-    const listings = this.getListings();
-    const filtered = listings.filter(l => l.id !== id);
-    localStorage.setItem(LISTINGS_KEY, JSON.stringify(filtered));
-    this.invalidateSearchCache();
+  static async deleteListing(id: string): Promise<boolean> {
+    if (!firebaseReady() || !db || !this.currentUid) return false;
+    await deleteDoc(doc(db, 'listings', id));
+    this.listingsSnapshot = this.listingsSnapshot.filter((listing) => listing.id !== id);
     return true;
   }
 
-  static markListingStatus(id: string, status: 'active' | 'reserved' | 'completed' | 'flagged'): boolean {
-    const listings = this.getListings();
-    const target = listings.find(l => l.id === id);
-    if (target) {
-      target.status = status;
-      localStorage.setItem(LISTINGS_KEY, JSON.stringify(listings));
-      this.invalidateSearchCache();
-      return true;
-    }
-    return false;
+  static async markListingStatus(id: string, status: BookListing['status']): Promise<boolean> {
+    if (!firebaseReady() || !db || !this.currentUid) return false;
+    await updateDoc(doc(db, 'listings', id), { status, updatedAt: formatNow() });
+    this.listingsSnapshot = this.listingsSnapshot.map((listing) => (listing.id === id ? { ...listing, status } : listing));
+    return true;
   }
 
-  static incrementView(id: string) {
-    const listings = this.getListings();
-    const target = listings.find(l => l.id === id);
-    if (target) {
-      target.views = (target.views || 0) + 1;
-      localStorage.setItem(LISTINGS_KEY, JSON.stringify(listings));
-    }
+  static async incrementView(id: string) {
+    if (!firebaseReady() || !db) return;
+    await updateDoc(doc(db, 'listings', id), { views: increment(1) });
   }
 
-  // --- Favorites Management ---
-  static getFavorites(): string[] {
-    this.init();
+  static async uploadBookImage(file: File, listingId: string): Promise<string> {
+    if (!firebaseReady() || !storage || !this.currentUid) throw new Error('يجب تسجيل الدخول لرفع الصور.');
+    if (!file.type.startsWith('image/')) throw new Error('يسمح برفع الصور فقط.');
+    if (file.size > 5 * 1024 * 1024) throw new Error('حجم الصورة الأقصى هو 5 ميغابايت.');
+    const extension = file.name.split('.').pop() || 'jpg';
+    const imageRef = ref(storage, `book-covers/${this.currentUid}/${listingId}-${crypto.randomUUID()}.${extension}`);
+    await uploadBytes(imageRef, file, { contentType: file.type, customMetadata: { ownerId: this.currentUid } });
+    return getDownloadURL(imageRef);
+  }
+
+  static async deleteBookImage(url: string) {
+    if (!firebaseReady() || !storage) return;
     try {
-      const stored = localStorage.getItem(FAVORITES_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
+      await deleteObject(ref(storage, url));
+    } catch (error) {
+      console.warn('Storage image delete skipped', error);
     }
   }
 
-  static toggleFavorite(listingId: string): boolean {
-    const favs = this.getFavorites();
-    const listings = this.getListings();
-    const listing = listings.find(l => l.id === listingId);
-    
+  static async getFavorites(): Promise<string[]> {
+    if (!firebaseReady() || !db || !this.currentUid) return [];
+    const snapshot = await getDocs(collection(db, 'users', this.currentUid, 'favorites'));
+    return snapshot.docs.map((item) => item.id);
+  }
+
+  static async toggleFavorite(listingId: string): Promise<boolean> {
+    if (!firebaseReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لحفظ المفضلة.');
+    const favoriteRef = doc(db, 'users', this.currentUid, 'favorites', listingId);
+    const listingRef = doc(db, 'listings', listingId);
     let isNowFavorite = false;
-    if (favs.includes(listingId)) {
-      const newFavs = favs.filter(id => id !== listingId);
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavs));
-      if (listing) {
-        listing.favoritesCount = Math.max(0, (listing.favoritesCount || 1) - 1);
+    await runTransaction(db, async (transaction) => {
+      const favorite = await transaction.get(favoriteRef);
+      isNowFavorite = !favorite.exists();
+      if (favorite.exists()) {
+        transaction.delete(favoriteRef);
+        transaction.update(listingRef, { favoritesCount: increment(-1) });
+      } else {
+        transaction.set(favoriteRef, { listingId, createdAt: formatNow() });
+        transaction.update(listingRef, { favoritesCount: increment(1) });
       }
-      isNowFavorite = false;
-    } else {
-      favs.push(listingId);
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
-      if (listing) {
-        listing.favoritesCount = (listing.favoritesCount || 0) + 1;
-      }
-      isNowFavorite = true;
-    }
-    localStorage.setItem(LISTINGS_KEY, JSON.stringify(listings));
+    });
     return isNowFavorite;
   }
 
-  static isFavorite(listingId: string): boolean {
-    const favs = this.getFavorites();
-    return favs.includes(listingId);
+  static async getExchangeRequests(): Promise<ExchangeRequest[]> {
+    if (!firebaseReady() || !db || !this.currentUid) return [];
+    const requesterQuery = query(collection(db, 'exchangeRequests'), where('requesterId', '==', this.currentUid));
+    const sellerQuery = query(collection(db, 'exchangeRequests'), where('targetSellerId', '==', this.currentUid));
+    const [requesterSnapshot, sellerSnapshot] = await Promise.all([getDocs(requesterQuery), getDocs(sellerQuery)]);
+    const byId = new Map<string, ExchangeRequest>();
+    [...requesterSnapshot.docs, ...sellerSnapshot.docs].forEach((item) => byId.set(item.id, { id: item.id, ...item.data() } as ExchangeRequest));
+    return [...byId.values()].sort((a, b) => b.id.localeCompare(a.id));
   }
 
-  // --- Exchange Requests ---
-  static getExchangeRequests(): ExchangeRequest[] {
-    this.init();
-    try {
-      const stored = localStorage.getItem(REQUESTS_KEY);
-      return stored ? JSON.parse(stored) : INITIAL_EXCHANGE_REQUESTS;
-    } catch {
-      return INITIAL_EXCHANGE_REQUESTS;
-    }
+  static async sendExchangeRequest(req: Omit<ExchangeRequest, 'id' | 'createdAt' | 'status'>): Promise<ExchangeRequest> {
+    if (!firebaseReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال طلب تبادل.');
+    const requestRef = doc(collection(db, 'exchangeRequests'));
+    const newRequest: ExchangeRequest = { ...req, id: requestRef.id, requesterId: this.currentUid, status: 'pending', createdAt: formatNow() };
+    await setDoc(requestRef, asRecord(newRequest));
+    return newRequest;
   }
 
-  static sendExchangeRequest(req: Omit<ExchangeRequest, 'id' | 'createdAt' | 'status'>): ExchangeRequest {
-    const requests = this.getExchangeRequests();
-    const newReq: ExchangeRequest = {
-      ...req,
-      id: `req-${Date.now()}`,
-      status: 'pending',
-      createdAt: 'الآن'
-    };
-    requests.unshift(newReq);
-    localStorage.setItem(REQUESTS_KEY, JSON.stringify(requests));
-    return newReq;
+  static async updateExchangeRequestStatus(id: string, status: ExchangeRequest['status']): Promise<boolean> {
+    if (!firebaseReady() || !db || !this.currentUid) return false;
+    await updateDoc(doc(db, 'exchangeRequests', id), { status, updatedAt: formatNow() });
+    return true;
   }
 
-  static updateExchangeRequestStatus(id: string, status: 'accepted' | 'rejected' | 'completed'): boolean {
-    const requests = this.getExchangeRequests();
-    const target = requests.find(r => r.id === id);
-    if (target) {
-      target.status = status;
-      localStorage.setItem(REQUESTS_KEY, JSON.stringify(requests));
-      return true;
-    }
-    return false;
+  static async getChats(): Promise<ChatConversation[]> {
+    if (!firebaseReady() || !db || !this.currentUid) return [];
+    const conversationsQuery = query(collection(db, 'conversations'), where('participants', 'array-contains', this.currentUid), limit(50));
+    const snapshot = await getDocs(conversationsQuery);
+    const conversations = await Promise.all(snapshot.docs.map(async (item) => {
+      const data = item.data() as Omit<ChatConversation, 'messages'> & { participants: string[] };
+      const messagesSnapshot = await getDocs(query(collection(db, 'conversations', item.id, 'messages'), orderBy('createdAt', 'asc')));
+      const messages = messagesSnapshot.docs.map((message) => ({ id: message.id, ...message.data() }) as ChatMessage);
+      return { id: item.id, ...data, messages } as ChatConversation;
+    }));
+    return conversations.sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
   }
 
-  // --- Chats & In-App Messenger ---
-  static getChats(): ChatConversation[] {
-    this.init();
-    try {
-      const stored = localStorage.getItem(CHATS_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  static sendMessage(conversationId: string, text: string, senderUser: User, receiverUser: User, listing?: BookListing): ChatConversation {
-    const chats = this.getChats();
-    let conv = chats.find(c => c.id === conversationId);
-    
-    const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      senderId: senderUser.id,
-      receiverId: receiverUser.id,
+  static async sendMessage(conversationId: string, text: string, senderUser: User, receiverUser: User, listing?: BookListing): Promise<ChatConversation> {
+    if (!firebaseReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال رسالة.');
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const messageRef = doc(collection(conversationRef, 'messages'));
+    const timestamp = formatNow();
+    const newMessage: ChatMessage = { id: messageRef.id, senderId: senderUser.id, receiverId: receiverUser.id, listingId: listing?.id, text: text.trim(), timestamp, isRead: false };
+    const conversation: Omit<ChatConversation, 'messages'> & { participants: string[] } = {
+      id: conversationId,
+      participants: [senderUser.id, receiverUser.id],
       listingId: listing?.id,
-      text,
-      timestamp: new Date().toLocaleTimeString('ar-DZ', { hour: '2-digit', minute: '2-digit' }),
-      isRead: false
+      listingTitle: listing?.title,
+      listingPhoto: listing?.photos?.[0],
+      listingPrice: listing?.price,
+      dealType: listing?.dealType,
+      participant: receiverUser,
+      lastMessage: newMessage.text,
+      lastMessageTime: timestamp,
+      unreadCount: 0,
     };
-
-    if (conv) {
-      conv.messages.push(newMsg);
-      conv.lastMessage = text;
-      conv.lastMessageTime = newMsg.timestamp;
-    } else {
-      conv = {
-        id: conversationId,
-        listingId: listing?.id,
-        listingTitle: listing?.title,
-        listingPhoto: listing?.photos[0],
-        listingPrice: listing?.price,
-        dealType: listing?.dealType,
-        participant: receiverUser,
-        lastMessage: text,
-        lastMessageTime: newMsg.timestamp,
-        unreadCount: 0,
-        messages: [newMsg]
-      };
-      chats.unshift(conv);
-    }
-    localStorage.setItem(CHATS_KEY, JSON.stringify(chats));
-    return conv;
+    await setDoc(conversationRef, asRecord(conversation), { merge: true });
+    await setDoc(messageRef, { ...asRecord(newMessage), createdAt: Date.now() });
+    return { ...conversation, messages: [newMessage] } as ChatConversation;
   }
 
-  // --- Reports ---
-  static getReports(): ReportItem[] {
-    this.init();
+  static async getReports(): Promise<ReportItem[]> {
+    if (!firebaseReady() || !db || !this.currentUid) return [];
     try {
-      const stored = localStorage.getItem(REPORTS_KEY);
-      return stored ? JSON.parse(stored) : [];
+      const snapshot = await getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(100)));
+      return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as ReportItem);
     } catch {
       return [];
     }
   }
 
-  static submitReport(report: Omit<ReportItem, 'id' | 'status' | 'createdAt'>): ReportItem {
-    const reports = this.getReports();
-    const newRep: ReportItem = {
-      ...report,
-      id: `rep-${Date.now()}`,
-      status: 'pending',
-      createdAt: 'الآن'
-    };
-    reports.unshift(newRep);
-    localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
-    return newRep;
+  static async submitReport(report: Omit<ReportItem, 'id' | 'status' | 'createdAt'>): Promise<ReportItem> {
+    if (!firebaseReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال بلاغ.');
+    const reportRef = doc(collection(db, 'reports'));
+    const newReport: ReportItem = { ...report, id: reportRef.id, reporterId: this.currentUid, status: 'pending', createdAt: formatNow() } as ReportItem;
+    await setDoc(reportRef, asRecord(newReport));
+    return newReport;
   }
 
-  static resolveReport(id: string, action: 'resolved' | 'dismissed'): boolean {
-    const reports = this.getReports();
-    const target = reports.find(r => r.id === id);
-    if (target) {
-      target.status = action;
-      localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
-      return true;
-    }
-    return false;
+  static async resolveReport(id: string, action: 'resolved' | 'dismissed'): Promise<boolean> {
+    if (!firebaseReady() || !db || !this.currentUid) return false;
+    await updateDoc(doc(db, 'reports', id), { status: action, resolvedAt: formatNow(), resolvedBy: this.currentUid });
+    return true;
   }
 
-  // --- Smart Filtering Helper ---
   static filterListings(listings: BookListing[], filters: FilterState): BookListing[] {
-    return listings.filter(item => {
+    return listings.filter((item) => {
       if (item.status === 'flagged') return false;
-
-      // Search Query in title, description, subject, or author
-      if (filters.searchQuery.trim()) {
-        const q = filters.searchQuery.toLowerCase().trim();
-        const matchTitle = item.title.toLowerCase().includes(q);
-        const matchDesc = item.description.toLowerCase().includes(q);
-        const matchSubject = item.subject.toLowerCase().includes(q);
-        const matchGrade = item.grade.toLowerCase().includes(q);
-        const matchStream = item.stream ? item.stream.toLowerCase().includes(q) : false;
-        const matchWilaya = item.wilayaNameAr.includes(q) || item.wilayaNameFr.toLowerCase().includes(q);
-        if (!matchTitle && !matchDesc && !matchSubject && !matchGrade && !matchStream && !matchWilaya) {
-          return false;
-        }
-      }
-
-      // Education Level
-      if (filters.level !== 'all' && item.level !== filters.level) {
-        return false;
-      }
-
-      // Grade Code
-      if (filters.gradeCode && item.gradeCode !== filters.gradeCode) {
-        return false;
-      }
-
-      // Stream
-      if (filters.stream && item.stream && !item.stream.includes(filters.stream)) {
-        return false;
-      }
-
-      // Subject
-      if (filters.subject && !item.subject.includes(filters.subject)) {
-        return false;
-      }
-
-      // Wilaya Code
-      if (filters.wilayaCode !== 0 && item.wilayaCode !== filters.wilayaCode) {
-        return false;
-      }
-
-      // Municipality
-      if (filters.municipality && item.municipality !== filters.municipality) {
-        return false;
-      }
-
-      // Deal Type
-      if (filters.dealType !== 'all' && item.dealType !== filters.dealType) {
-        return false;
-      }
-
-      // Only Free
-      if (filters.onlyFree && item.dealType !== 'free') {
-        return false;
-      }
-
-      // Only Exchange
-      if (filters.onlyExchange && item.dealType !== 'exchange') {
-        return false;
-      }
-
-      // Condition
-      if (filters.condition !== 'all' && item.condition !== filters.condition) {
-        return false;
-      }
-
-      // Delivery Only
-      if (filters.deliveryOnly && !item.deliveryAvailable) {
-        return false;
-      }
-
-      // Price bounds
-      if (item.dealType === 'sale') {
-        if (filters.minPrice > 0 && item.price < filters.minPrice) return false;
-        if (filters.maxPrice < 5000 && item.price > filters.maxPrice) return false;
-      }
-
+      const q = filters.searchQuery.toLowerCase().trim();
+      if (q && ![item.title, item.description, item.subject, item.grade, item.stream || '', item.wilayaNameAr, item.wilayaNameFr].some((value) => value.toLowerCase().includes(q))) return false;
+      if (filters.level !== 'all' && item.level !== filters.level) return false;
+      if (filters.gradeCode && item.gradeCode !== filters.gradeCode) return false;
+      if (filters.stream && item.stream && !item.stream.includes(filters.stream)) return false;
+      if (filters.subject && !item.subject.includes(filters.subject)) return false;
+      if (filters.wilayaCode !== 0 && item.wilayaCode !== filters.wilayaCode) return false;
+      if (filters.municipality && item.municipality !== filters.municipality) return false;
+      if (filters.dealType !== 'all' && item.dealType !== filters.dealType) return false;
+      if (filters.onlyFree && item.dealType !== 'free') return false;
+      if (filters.onlyExchange && item.dealType !== 'exchange') return false;
+      if (filters.condition !== 'all' && item.condition !== filters.condition) return false;
+      if (filters.deliveryOnly && !item.deliveryAvailable) return false;
+      if (item.dealType === 'sale' && ((filters.minPrice > 0 && item.price < filters.minPrice) || (filters.maxPrice < 5000 && item.price > filters.maxPrice))) return false;
       return true;
     }).sort((a, b) => {
-      if (filters.sortBy === 'price_asc') {
-        return a.price - b.price;
-      }
-      if (filters.sortBy === 'price_desc') {
-        return b.price - a.price;
-      }
-      if (filters.sortBy === 'popular') {
-        return (b.views + b.favoritesCount * 3) - (a.views + a.favoritesCount * 3);
-      }
-      // default: latest
+      if (filters.sortBy === 'price_asc') return a.price - b.price;
+      if (filters.sortBy === 'price_desc') return b.price - a.price;
+      if (filters.sortBy === 'popular') return (b.views + b.favoritesCount * 3) - (a.views + a.favoritesCount * 3);
       return 0;
     });
   }
 
-  // --- Exchange Matching Engine ---
-  static findExchangeMatches(haveSubject: string, haveLevel: EducationLevel, wantSubject: string, wantLevel: EducationLevel, userWilaya?: number) {
-    const listings = this.getListings().filter(l => l.status === 'active');
-    
-    return listings.map(listing => {
-      let score = 0;
+  static findExchangeMatches(haveSubject: string, haveLevel: EducationLevel, wantSubject: string, wantLevel: EducationLevel, userWilaya?: number, listings: BookListing[] = this.listingsSnapshot) {
+    return listings.filter((listing) => listing.status === 'active').map((listing) => {
+      let score = listing.dealType === 'exchange' ? 30 : 0;
       const reasons: string[] = [];
-
-      // If listing is an exchange
-      if (listing.dealType === 'exchange') {
-        score += 30;
-      }
-
-      // Does the listing offer what the user WANTS?
       if (listing.level === wantLevel) {
         score += 25;
-        if (wantSubject && listing.subject.includes(wantSubject)) {
-          score += 30;
-          reasons.push(`يقدم مادة ${listing.subject} التي تبحث عنها`);
-        }
+        if (wantSubject && listing.subject.includes(wantSubject)) { score += 30; reasons.push(`يقدم مادة ${listing.subject} التي تبحث عنها`); }
       }
-
-      // Does the listing search for what the user HAS?
-      if (listing.exchangeFor && haveSubject && listing.exchangeFor.includes(haveSubject)) {
-        score += 35;
-        reasons.push(`صاحب الإعلان يبحث بالتحديد عن: "${haveSubject}"!`);
-      }
-
-      // Wilaya match (same province)
-      if (userWilaya && listing.wilayaCode === userWilaya) {
-        score += 20;
-        reasons.push(`في نفس ولايتك (${listing.wilayaNameAr})`);
-      }
-
-      return {
-        listing,
-        matchScore: Math.min(100, score),
-        reasons
-      };
-    }).filter(m => m.matchScore >= 40)
-      .sort((a, b) => b.matchScore - a.matchScore);
+      if (listing.exchangeFor && haveSubject && listing.exchangeFor.includes(haveSubject)) { score += 35; reasons.push(`صاحب الإعلان يبحث بالتحديد عن: "${haveSubject}"!`); }
+      if (userWilaya && listing.wilayaCode === userWilaya) { score += 20; reasons.push(`في نفس ولايتك (${listing.wilayaNameAr})`); }
+      return { listing, matchScore: Math.min(100, score), reasons };
+    }).filter((match) => match.matchScore >= 40).sort((a, b) => b.matchScore - a.matchScore);
   }
 
-  // --- Platform Financial & Social Impact Stats ---
-  static getPlatformStats() {
-    const listings = this.getListings();
+  static getPlatformStats(listings: BookListing[] = this.listingsSnapshot) {
     const totalBooks = listings.length;
-    const activeExchanges = listings.filter(l => l.dealType === 'exchange').length;
-    const freeDonations = listings.filter(l => l.dealType === 'free').length;
-    
-    // Estimate total DZD saved for Algerian families (difference between original price & used price + exchanged book values)
-    const estimatedSavingsDZD = listings.reduce((acc, curr) => {
-      if (curr.dealType === 'free') {
-        return acc + (curr.originalPrice || 600);
-      }
-      if (curr.dealType === 'exchange') {
-        return acc + 800; // Average saved vs buying new
-      }
-      if (curr.originalPrice && curr.price) {
-        return acc + Math.max(0, curr.originalPrice - curr.price);
-      }
-      return acc + 350;
-    }, 184500); // Starter baseline saved
-
-    const activeWilayasCount = new Set(listings.map(l => l.wilayaCode)).size;
-
-    return {
-      totalBooks,
-      activeExchanges,
-      freeDonations,
-      estimatedSavingsDZD,
-      activeWilayasCount
-    };
+    const activeExchanges = listings.filter((listing) => listing.dealType === 'exchange').length;
+    const freeDonations = listings.filter((listing) => listing.dealType === 'free').length;
+    const estimatedSavingsDZD = listings.reduce((total, listing) => listing.dealType === 'free' ? total + (listing.originalPrice || 600) : listing.dealType === 'exchange' ? total + 800 : total + Math.max(0, (listing.originalPrice || 0) - (listing.price || 0)), 184500);
+    return { totalBooks, activeExchanges, freeDonations, estimatedSavingsDZD, activeWilayasCount: new Set(listings.map((listing) => listing.wilayaCode)).size };
   }
 
-  // ==========================================
-  // --- Search Results Caching Subsystem ---
-  // ==========================================
+  static generateCacheKey(filters: FilterState) { return JSON.stringify(filters); }
 
-  static generateCacheKey(filters: FilterState): string {
-    return JSON.stringify({
-      q: (filters.searchQuery || '').trim().toLowerCase(),
-      lvl: filters.level || 'all',
-      gc: filters.gradeCode || '',
-      st: filters.stream || '',
-      sub: filters.subject || '',
-      w: filters.wilayaCode || 0,
-      mun: filters.municipality || '',
-      dt: filters.dealType || 'all',
-      cond: filters.condition || 'all',
-      min: filters.minPrice || 0,
-      max: filters.maxPrice || 3000,
-      free: !!filters.onlyFree,
-      exc: !!filters.onlyExchange,
-      deliv: !!filters.deliveryOnly,
-      sb: filters.sortBy || 'latest'
-    });
-  }
-
-  /**
-   * Retrieves cached search results for the given filter state if available & valid.
-   */
-  static getCachedSearchResults(filters: FilterState): { 
-    results: BookListing[]; 
-    timestamp: number; 
-    hitCount: number; 
-    resultCount: number;
-    isCacheValid: boolean;
-  } | null {
+  static getCachedSearchResults(filters: FilterState): { results: BookListing[]; timestamp: number; hitCount: number; resultCount: number; isCacheValid: boolean } | null {
     try {
-      const stored = localStorage.getItem(SEARCH_CACHE_KEY);
-      if (!stored) return null;
-
-      const cacheEntries: CachedSearchEntry[] = JSON.parse(stored);
-      const targetKey = this.generateCacheKey(filters);
-      const entryIndex = cacheEntries.findIndex(e => e.cacheKey === targetKey);
-
-      if (entryIndex === -1) return null;
-
-      const entry = cacheEntries[entryIndex];
-      const ageMs = Date.now() - entry.timestamp;
-
-      // If expired (older than CACHE_TTL_MS), evict entry
-      if (ageMs > CACHE_TTL_MS) {
-        cacheEntries.splice(entryIndex, 1);
-        localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(cacheEntries));
-        return null;
-      }
-
-      // Cache hit: Increment hit count and update entry
+      const entries = JSON.parse(localStorage.getItem(SEARCH_CACHE_KEY) || '[]') as CachedSearchEntry[];
+      const index = entries.findIndex((entry) => entry.cacheKey === this.generateCacheKey(filters));
+      if (index < 0) return null;
+      const entry = entries[index];
+      if (Date.now() - entry.timestamp > CACHE_TTL_MS) { entries.splice(index, 1); localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(entries)); return null; }
       entry.hitCount = (entry.hitCount || 1) + 1;
-      localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(cacheEntries));
-
-      return {
-        results: entry.results,
-        timestamp: entry.timestamp,
-        hitCount: entry.hitCount,
-        resultCount: entry.resultCount,
-        isCacheValid: true
-      };
-    } catch {
-      return null;
-    }
+      localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(entries));
+      return { ...entry, isCacheValid: true };
+    } catch { return null; }
   }
 
-  /**
-   * Caches the search results in localStorage for subsequent instant retrieval.
-   */
   static setCachedSearchResults(filters: FilterState, results: BookListing[]) {
     try {
-      const stored = localStorage.getItem(SEARCH_CACHE_KEY);
-      let cacheEntries: CachedSearchEntry[] = stored ? JSON.parse(stored) : [];
-
-      const targetKey = this.generateCacheKey(filters);
-      const existingIdx = cacheEntries.findIndex(e => e.cacheKey === targetKey);
-
-      const newEntry: CachedSearchEntry = {
-        cacheKey: targetKey,
-        filters: { ...filters },
-        results: [...results],
-        timestamp: Date.now(),
-        resultCount: results.length,
-        hitCount: existingIdx >= 0 ? (cacheEntries[existingIdx].hitCount || 1) + 1 : 1
-      };
-
-      if (existingIdx >= 0) {
-        cacheEntries[existingIdx] = newEntry;
-      } else {
-        cacheEntries.unshift(newEntry);
-      }
-
-      // Keep only most recent MAX_CACHE_ENTRIES entries to prevent quota overflow
-      if (cacheEntries.length > MAX_CACHE_ENTRIES) {
-        cacheEntries = cacheEntries.slice(0, MAX_CACHE_ENTRIES);
-      }
-
-      localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(cacheEntries));
-    } catch (e) {
-      console.warn('LocalStorage cache write error (quota reached or private mode):', e);
-    }
+      const entries = JSON.parse(localStorage.getItem(SEARCH_CACHE_KEY) || '[]') as CachedSearchEntry[];
+      const cacheKey = this.generateCacheKey(filters);
+      const previous = entries.find((entry) => entry.cacheKey === cacheKey);
+      const next: CachedSearchEntry = { cacheKey, filters: { ...filters }, results, timestamp: Date.now(), resultCount: results.length, hitCount: previous ? previous.hitCount + 1 : 1 };
+      const nextEntries = [next, ...entries.filter((entry) => entry.cacheKey !== cacheKey)].slice(0, MAX_CACHE_ENTRIES);
+      localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(nextEntries));
+    } catch { /* local cache is optional */ }
   }
 
-  /**
-   * Invalidate search cache when data changes (e.g. new listing, deletion, or manual refresh)
-   */
-  static invalidateSearchCache() {
-    try {
-      localStorage.removeItem(SEARCH_CACHE_KEY);
-    } catch {
-      // ignore
-    }
-  }
-
-  // ==========================================
-  // --- Recent Searches History Subsystem ---
-  // ==========================================
+  static invalidateSearchCache() { localStorage.removeItem(SEARCH_CACHE_KEY); }
 
   static getRecentSearches(): RecentSearchItem[] {
-    try {
-      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+    try { return JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY) || '[]') as RecentSearchItem[]; } catch { return []; }
   }
 
-  static saveRecentSearch(
-    query: string, 
-    filters: Partial<FilterState> = {}, 
-    resultCount: number = 0
-  ): RecentSearchItem[] {
-    const trimmed = (query || '').trim();
-    // Do not save completely empty queries with default filters
-    if (!trimmed && (!filters.level || filters.level === 'all') && (!filters.wilayaCode || filters.wilayaCode === 0)) {
-      return this.getRecentSearches();
-    }
-
-    try {
-      let recent = this.getRecentSearches();
-
-      // Deduplicate matching query + level + wilaya
-      recent = recent.filter(r => {
-        const sameQuery = r.query.toLowerCase() === trimmed.toLowerCase();
-        const sameLevel = (r.level || 'all') === (filters.level || 'all');
-        const sameWilaya = (r.wilayaCode || 0) === (filters.wilayaCode || 0);
-        return !(sameQuery && sameLevel && sameWilaya);
-      });
-
-      const newItem: RecentSearchItem = {
-        id: 'search-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-        query: trimmed,
-        level: filters.level || 'all',
-        wilayaCode: filters.wilayaCode || 0,
-        dealType: filters.dealType || 'all',
-        timestamp: Date.now(),
-        resultCount
-      };
-
-      recent.unshift(newItem);
-
-      if (recent.length > MAX_RECENT_SEARCHES) {
-        recent = recent.slice(0, MAX_RECENT_SEARCHES);
-      }
-
-      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent));
-      return recent;
-    } catch {
-      return [];
-    }
+  static saveRecentSearch(queryText: string, filters: Partial<FilterState> = {}, resultCount = 0): RecentSearchItem[] {
+    const queryTextTrimmed = (queryText || '').trim();
+    if (!queryTextTrimmed && (!filters.level || filters.level === 'all') && (!filters.wilayaCode || filters.wilayaCode === 0)) return this.getRecentSearches();
+    const current = this.getRecentSearches().filter((item) => !(item.query.toLowerCase() === queryTextTrimmed.toLowerCase() && (item.level || 'all') === (filters.level || 'all') && (item.wilayaCode || 0) === (filters.wilayaCode || 0)));
+    const next = [{ id: `search-${Date.now()}`, query: queryTextTrimmed, level: filters.level || 'all', wilayaCode: filters.wilayaCode || 0, dealType: filters.dealType || 'all', timestamp: Date.now(), resultCount }, ...current].slice(0, MAX_RECENT_SEARCHES);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next));
+    return next;
   }
 
-  static removeRecentSearch(id: string): RecentSearchItem[] {
-    try {
-      let recent = this.getRecentSearches();
-      recent = recent.filter(r => r.id !== id);
-      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent));
-      return recent;
-    } catch {
-      return [];
-    }
-  }
-
-  static clearRecentSearches(): boolean {
-    try {
-      localStorage.removeItem(RECENT_SEARCHES_KEY);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  // ==========================================
-  // --- Persistent Marketplace Filter State ---
-  // ==========================================
-
-  static getLastMarketplaceFilters(): FilterState | null {
-    try {
-      const stored = localStorage.getItem(LAST_FILTERS_KEY);
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  static saveLastMarketplaceFilters(filters: FilterState) {
-    try {
-      localStorage.setItem(LAST_FILTERS_KEY, JSON.stringify(filters));
-    } catch {
-      // ignore
-    }
-  }
-
-  static getCacheStats(): {
-    cachedQueriesCount: number;
-    recentSearchesCount: number;
-    estimatedSavedKb: number;
-    lastCachedAt: number | null;
-  } {
-    try {
-      const storedCache = localStorage.getItem(SEARCH_CACHE_KEY);
-      const storedRecent = localStorage.getItem(RECENT_SEARCHES_KEY);
-
-      const cacheEntries: CachedSearchEntry[] = storedCache ? JSON.parse(storedCache) : [];
-      const recentEntries: RecentSearchItem[] = storedRecent ? JSON.parse(storedRecent) : [];
-
-      const totalHits = cacheEntries.reduce((acc, c) => acc + (c.hitCount || 1), 0);
-      // Rough estimation: each cache hit saves ~15-40 KB of JSON / assets payload
-      const estimatedSavedKb = totalHits * 25;
-      const lastCachedAt = cacheEntries.length > 0 ? cacheEntries[0].timestamp : null;
-
-      return {
-        cachedQueriesCount: cacheEntries.length,
-        recentSearchesCount: recentEntries.length,
-        estimatedSavedKb,
-        lastCachedAt
-      };
-    } catch {
-      return {
-        cachedQueriesCount: 0,
-        recentSearchesCount: 0,
-        estimatedSavedKb: 0,
-        lastCachedAt: null
-      };
-    }
-  }
+  static removeRecentSearch(id: string) { const next = this.getRecentSearches().filter((item) => item.id !== id); localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next)); return next; }
+  static clearRecentSearches() { localStorage.removeItem(RECENT_SEARCHES_KEY); return true; }
+  static getLastMarketplaceFilters(): FilterState | null { try { return JSON.parse(localStorage.getItem(LAST_FILTERS_KEY) || 'null') as FilterState | null; } catch { return null; } }
+  static saveLastMarketplaceFilters(filters: FilterState) { localStorage.setItem(LAST_FILTERS_KEY, JSON.stringify(filters)); }
+  static getCacheStats() { const cache = JSON.parse(localStorage.getItem(SEARCH_CACHE_KEY) || '[]') as CachedSearchEntry[]; const recent = this.getRecentSearches(); return { cachedQueriesCount: cache.length, recentSearchesCount: recent.length, estimatedSavedKb: cache.reduce((sum, item) => sum + (item.hitCount || 1), 0) * 25, lastCachedAt: cache[0]?.timestamp || null }; }
 }

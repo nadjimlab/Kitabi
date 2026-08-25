@@ -75,3 +75,37 @@ src/
 ## الترخيص
 
 يُرجى إضافة الترخيص القانوني المناسب قبل فتح المشروع أمام مساهمين خارجيين أو استخدامه تجاريًا.
+
+## إعداد Firebase قبل التشغيل
+
+أنشئ تطبيق Web داخل مشروع Firebase ثم فعّل **Phone** من Authentication، وأضف نطاق Vercel ضمن Authorized domains. ستحتاج أيضًا إلى إنشاء Firestore Database وCloud Storage. يرسل Phone Auth رمز SMS ويتطلب reCAPTCHA، لذلك يجب تشغيله على نطاق مصرح به.
+
+انسخ `.env.example` إلى `.env.local`، ثم راجع القيم الخاصة بمشروعك:
+
+```bash
+cp .env.example .env.local
+```
+
+القيم ذات السابقة `VITE_FIREBASE_` هي إعدادات عميل الويب، بينما تعتمد الحماية الفعلية على قواعد `firestore.rules` و`storage.rules`. لا تضع Service Account أو مفاتيح Admin SDK في الواجهة الأمامية.
+
+لرفع القواعد من جهاز يتوفر فيه Firebase CLI، سجّل الدخول واختر المشروع ثم نفّذ:
+
+```bash
+npx firebase-tools login
+npx firebase-tools use kitabi-f9387
+npx firebase-tools deploy --only firestore:rules,storage
+```
+
+اجعل دور أول مسؤول يدويًا في Firestore من خلال إنشاء أو تعديل المستند `users/{Firebase UID}` وإضافة:
+
+```json
+{ "role": "admin" }
+```
+
+يُقرأ هذا الدور من Firestore، وتتحقق الواجهة من إظهاره كما تتحقق قواعد Firebase منه على الخادم. لذلك لا يكفي إخفاء زر لوحة الإدارة في الواجهة وحده.
+
+## متغيرات Vercel
+
+أضف متغيرات `VITE_FIREBASE_API_KEY` و`VITE_FIREBASE_AUTH_DOMAIN` و`VITE_FIREBASE_PROJECT_ID` و`VITE_FIREBASE_STORAGE_BUCKET` و`VITE_FIREBASE_MESSAGING_SENDER_ID` و`VITE_FIREBASE_APP_ID` إلى بيئات **Production**, **Preview** و**Development** في إعدادات مشروع Vercel، ثم أعد النشر.
+
+تستخدم الواجهة التخزين المحلي فقط لتفضيلات البحث والكاش المحلي الخفيف؛ أما الإعلانات والمستخدمون والمفضلة والمحادثات وطلبات التبادل والبلاغات فتعتمد على Firestore، والصور المرفوعة تعتمد على Firebase Storage.

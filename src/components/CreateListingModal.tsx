@@ -3,7 +3,6 @@ import {
   X, 
   UploadCloud, 
   Camera, 
-  Sparkles, 
   Check, 
   ArrowLeft, 
   ArrowRight, 
@@ -18,6 +17,7 @@ import {
 } from 'lucide-react';
 import { BookListing, User, EducationLevel, BookCondition, DealType } from '../types';
 import { WILAYAS, EDUCATION_LEVELS, GRADES_BY_LEVEL, SUBJECTS_BY_LEVEL, STREAMS } from '../data/algerianData';
+import { StorageService } from '../services/storageService';
 
 interface CreateListingModalProps {
   isOpen: boolean;
@@ -64,13 +64,11 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   const [hasAnswersIncluded, setHasAnswersIncluded] = useState(true);
   const [includesCD, setIncludesCD] = useState(false);
   const [photos, setPhotos] = useState<string[]>([PRESET_COVERS[0]]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [wilayaCode, setWilayaCode] = useState<number>(currentUser.wilayaCode || 16);
   const [municipality, setMunicipality] = useState<string>(currentUser.municipality || 'باب الزوار');
   const [deliveryAvailable, setDeliveryAvailable] = useState(true);
   const [phone, setPhone] = useState(currentUser.phone || '0550123456');
-
-  // AI Recognition architecture notice banner
-  const [aiScanStatus, setAiScanStatus] = useState<'idle' | 'scanning' | 'success'>('idle');
 
   if (!isOpen) return null;
 
@@ -99,32 +97,29 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setPhotos([reader.result, ...photos.slice(1)]);
-        }
-      };
-      reader.readAsDataURL(file);
+      setPhotoFile(file);
+      setPhotos([URL.createObjectURL(file)]);
     }
   };
 
-  const handleAiScanTrigger = () => {
-    setAiScanStatus('scanning');
-    setTimeout(() => {
-      // Smartly suggests title & subject based on current presets
-      setTitle('الممتاز في ' + subject + ' - تحضير البكالوريا');
-      setDescription('كتاب بحالة ممتازة، يحتوي على ملخصات وتمارين مع حلولها المنهجية.');
-      setAiScanStatus('success');
-    }, 1200);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     const activeGradeObj = GRADES_BY_LEVEL[level].find(g => g.code === gradeCode);
     const gradeName = activeGradeObj ? activeGradeObj.nameAr : gradeCode;
+
+    let uploadedPhotos = photos;
+    if (photoFile) {
+      try {
+        const uploadedUrl = await StorageService.uploadBookImage(photoFile, `book-${Date.now()}`);
+        uploadedPhotos = [uploadedUrl];
+      } catch (error) {
+        console.error(error);
+        setIsSubmitting(false);
+        return;
+      }
+    }
 
     const newListing: BookListing = {
       id: `book-${Date.now()}`,
@@ -145,7 +140,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
       hasPencilMarks,
       hasAnswersIncluded,
       includesCD,
-      photos: photos.length > 0 ? photos : [PRESET_COVERS[0]],
+      photos: uploadedPhotos.length > 0 ? uploadedPhotos : [PRESET_COVERS[0]],
       wilayaCode,
       wilayaNameAr: currentWilaya.nameAr,
       wilayaNameFr: currentWilaya.nameFr,
@@ -164,11 +159,9 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
       status: 'active'
     };
 
-    setTimeout(() => {
-      onListingCreated(newListing);
-      setIsSubmitting(false);
-      onClose();
-    }, 600);
+    await onListingCreated(newListing);
+    setIsSubmitting(false);
+    onClose();
   };
 
   return (
@@ -237,31 +230,6 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in duration-150">
               
-              {/* AI Recognition Architecture Banner */}
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 p-3 rounded-2xl flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 bg-emerald-600 text-white rounded-xl">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-emerald-950">
-                      {lang === 'ar' ? 'التعرف الذكي على الكتاب بالصورة' : 'Reconnaissance IA de couverture'}
-                    </div>
-                    <div className="text-[11px] text-emerald-800">
-                      {lang === 'ar' ? 'قم بتصوير الغلاف وسنقوم بملء البيانات آلياً' : 'Prenez une photo pour remplir automatiquement'}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAiScanTrigger}
-                  disabled={aiScanStatus === 'scanning'}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-colors shadow-sm shrink-0 flex items-center gap-1"
-                >
-                  {aiScanStatus === 'scanning' ? 'جاري المسح...' : aiScanStatus === 'success' ? 'تم التعرف ✓' : 'مسح ذكي'}
-                </button>
-              </div>
-
               {/* Photo selection / Presets */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">

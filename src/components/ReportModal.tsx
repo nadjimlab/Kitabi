@@ -32,11 +32,11 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     { id: 'other' as const, label: 'سبب آخر' }
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const activeLabel = reasonsList.find(r => r.id === reason)?.label || 'إبلاغ';
     
-    StorageService.submitReport({
+    await StorageService.submitReport({
       listingId: book.id,
       listingTitle: book.title,
       sellerName: book.seller.name,

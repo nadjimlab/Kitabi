@@ -27,6 +27,7 @@ export interface User {
   bookstoreName?: string;
   joinedDate: string;
   bio?: string;
+  role?: 'user' | 'admin';
 }
 
 export interface BookListing {
@@ -119,6 +120,7 @@ export interface ReportItem {
   details: string;
   status: 'pending' | 'resolved' | 'dismissed';
   createdAt: string;
+  reporterId?: string;
 }
 
 export interface FilterState {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   ShieldCheck, 
   BookOpen, 
@@ -35,28 +35,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   lang
 }) => {
   const [activeTab, setActiveTab] = useState<'listings' | 'reports' | 'catalog' | 'wilayas' | 'monetization'>('listings');
-  const [reports, setReports] = useState<ReportItem[]>(StorageService.getReports());
+  const [reports, setReports] = useState<ReportItem[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
 
-  const stats = StorageService.getPlatformStats();
-  const allUsers = StorageService.getAllDemoUsers();
+  useEffect(() => {
+    let cancelled = false;
+    const loadAdminData = async () => {
+      const [remoteReports, remoteUsers] = await Promise.all([StorageService.getReports(), StorageService.getAllUsers()]);
+      if (!cancelled) {
+        setReports(remoteReports);
+        setAllUsers(remoteUsers);
+      }
+    };
+    void loadAdminData();
+    return () => { cancelled = true; };
+  }, []);
 
-  const handleToggleFeatured = (id: string) => {
+  const stats = StorageService.getPlatformStats(listings);
+
+  const handleToggleFeatured = async (id: string) => {
     const target = listings.find(l => l.id === id);
     if (target) {
-      target.isFeatured = !target.isFeatured;
-      StorageService.saveListing(target);
+      await StorageService.saveListing({ ...target, isFeatured: !target.isFeatured });
       window.location.reload();
     }
   };
 
-  const handleToggleStatus = (id: string, status: 'active' | 'flagged' | 'completed') => {
-    StorageService.markListingStatus(id, status);
+  const handleToggleStatus = async (id: string, status: 'active' | 'flagged' | 'completed') => {
+    await StorageService.markListingStatus(id, status);
     window.location.reload();
   };
 
-  const handleResolveReport = (reportId: string, action: 'resolved' | 'dismissed') => {
-    StorageService.resolveReport(reportId, action);
-    setReports(StorageService.getReports());
+  const handleResolveReport = async (reportId: string, action: 'resolved' | 'dismissed') => {
+    await StorageService.resolveReport(reportId, action);
+    setReports(await StorageService.getReports());
   };
 
   return (

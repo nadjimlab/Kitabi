@@ -33,7 +33,7 @@ export const ExchangeTradeModal: React.FC<ExchangeTradeModalProps> = ({
 
   if (!isOpen || !targetBook) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -41,7 +41,7 @@ export const ExchangeTradeModal: React.FC<ExchangeTradeModalProps> = ({
     const offeredTitle = selectedBook ? selectedBook.title : (customTitle.trim() || 'كتاب مدرسي للمبادلة');
     const offeredPhoto = selectedBook ? selectedBook.photos[0] : undefined;
 
-    const newReq = StorageService.sendExchangeRequest({
+    const newReq = await StorageService.sendExchangeRequest({
       requesterId: currentUser.id,
       requesterName: currentUser.name,
       requesterAvatar: currentUser.avatar,
@@ -57,15 +57,13 @@ export const ExchangeTradeModal: React.FC<ExchangeTradeModalProps> = ({
       municipality: currentUser.municipality
     });
 
+    setIsSubmitting(false);
+    setIsSuccess(true);
+    onTradeProposed(newReq);
     setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSuccess(true);
-      onTradeProposed(newReq);
-      setTimeout(() => {
-        setIsSuccess(false);
-        onClose();
-      }, 1800);
-    }, 600);
+      setIsSuccess(false);
+      onClose();
+    }, 1800);
   };
 
   return (
