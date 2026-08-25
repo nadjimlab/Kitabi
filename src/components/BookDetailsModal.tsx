@@ -30,7 +30,7 @@ interface BookDetailsModalProps {
   onClose: () => void;
   isFavorite: boolean;
   onToggleFavorite: (id: string) => void;
-  currentUser: User;
+  currentUser: User | null;
   onOpenChat: (book: BookListing, seller: User) => void;
   onOpenExchangeModal: (book: BookListing) => void;
   onOpenReportModal: (book: BookListing) => void;
@@ -386,52 +386,31 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
                   </p>
                 )}
 
-                {/* Primary Action Buttons Bar */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
-                  
-                  {/* WhatsApp Direct */}
-                  <a
-                    id="action-whatsapp-direct"
-                    href={getWhatsAppLink()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow transition-all active:scale-95 text-center"
-                  >
-                    <MessageCircle className="w-4 h-4 text-emerald-200" />
-                    <span>واتساب</span>
-                  </a>
-
-                  {/* Direct Phone Call */}
-                  <a
-                    id="action-call-direct"
-                    href={`tel:${book.seller.phone}`}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700 transition-all active:scale-95 text-center"
-                  >
-                    <Phone className="w-4 h-4 text-amber-400" />
-                    <span>اتصال</span>
-                  </a>
-
-                  {/* In-App Chat */}
-                  <button
-                    id="action-in-app-chat"
-                    onClick={() => onOpenChat(book, book.seller)}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700 transition-all active:scale-95"
-                  >
-                    <MessageSquare className="w-4 h-4 text-blue-400" />
-                    <span>دردشة كِتابي</span>
-                  </button>
-
-                  {/* Propose Exchange */}
-                  <button
-                    id="action-propose-trade"
-                    onClick={() => onOpenExchangeModal(book)}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow transition-all active:scale-95"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    <span>طلب تبادل 🔄</span>
-                  </button>
-
-                </div>
+                {/* Protected Contact & Action Buttons */}
+                {currentUser ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
+                    <a id="action-whatsapp-direct" href={getWhatsAppLink()} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow transition-all active:scale-95 text-center">
+                      <MessageCircle className="w-4 h-4 text-emerald-200" /><span>واتساب</span>
+                    </a>
+                    <a id="action-call-direct" href={`tel:${book.seller.phone}`} className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700 transition-all active:scale-95 text-center">
+                      <Phone className="w-4 h-4 text-amber-400" /><span>اتصال</span>
+                    </a>
+                    <button id="action-in-app-chat" onClick={() => onOpenChat(book, book.seller)} className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700 transition-all active:scale-95">
+                      <MessageSquare className="w-4 h-4 text-blue-400" /><span>دردشة كِتابي</span>
+                    </button>
+                    <button id="action-propose-trade" onClick={() => onOpenExchangeModal(book)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow transition-all active:scale-95">
+                      <RefreshCw className="w-4 h-4" /><span>طلب تبادل 🔄</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="pt-3 border-t border-slate-800">
+                    <button onClick={() => onOpenChat(book, book.seller)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow transition-all active:scale-95">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>سجّل الدخول للتواصل مع صاحب الكتاب</span>
+                    </button>
+                    <p className="text-[11px] text-slate-400 text-center mt-2">معلومات الهاتف وواتساب محمية وتظهر للمستخدمين المسجلين فقط.</p>
+                  </div>
+                )}
               </div>
 
             </div>
