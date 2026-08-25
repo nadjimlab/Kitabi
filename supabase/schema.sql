@@ -62,7 +62,10 @@ create table if not exists public.listings (
   is_featured boolean not null default false,
   status public.listing_status not null default 'active',
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  moderation_note text,
+  reviewed_at timestamptz,
+  reviewed_by uuid references public.profiles(id) on delete set null
 );
 
 create table if not exists public.favorites (
