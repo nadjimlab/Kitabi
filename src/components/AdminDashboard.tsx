@@ -17,7 +17,11 @@ import {
   ArrowLeft,
   Check,
   Trash2,
-  DollarSign
+  DollarSign,
+  UserRound,
+  LayoutDashboard,
+  Search,
+  Activity
 } from 'lucide-react';
 import { BookListing, ReportItem, User } from '../types';
 import { StorageService } from '../services/storageService';
@@ -34,9 +38,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onBackToApp,
   lang
 }) => {
-  const [activeTab, setActiveTab] = useState<'listings' | 'reports' | 'catalog' | 'wilayas' | 'monetization'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'reports' | 'users' | 'catalog' | 'wilayas' | 'monetization'>('listings');
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [userQuery, setUserQuery] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +57,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, []);
 
   const stats = StorageService.getPlatformStats(listings);
+  const filteredUsers = allUsers.filter((user) => {
+    const query = userQuery.trim().toLowerCase();
+    return !query || user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query);
+  });
 
   const handleToggleFeatured = async (id: string) => {
     const target = listings.find(l => l.id === id);
@@ -75,29 +84,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       
       {/* Admin Top Header */}
-      <div className="bg-[#0B192C] text-white p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center shadow-inner">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black font-serif">لوحة تحكم إدارة كِتابي</h1>
-              <span className="text-[10px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full font-black">ADMIN v1.0</span>
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#0B192C] via-[#102945] to-[#063B3B] text-white p-5 sm:p-7 rounded-[2rem] border border-slate-700/70 shadow-2xl">
+        <div className="absolute -top-20 -left-16 w-56 h-56 rounded-full bg-emerald-400/10 blur-3xl" />
+        <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+          <div className="flex items-start gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-400/15 text-amber-300 border border-amber-300/30 flex items-center justify-center shadow-inner shrink-0">
+              <ShieldCheck className="w-6 h-6" />
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              مراقبة الإعلانات، إدارة البلاغات، خريطة الولايات، وإعداد خطة الشراكات والمكتبات المعتمدة
-            </p>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-emerald-200 font-black"><Activity className="w-3.5 h-3.5" /> النظام يعمل</span>
+                <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-black">ADMIN CONTROL</span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black font-serif">مرحبًا بك في مركز قيادة كِتابي</h1>
+              <p className="text-xs text-slate-300 mt-1 max-w-2xl">إدارة الإعلانات، حماية المجتمع، ومتابعة نمو المنصة من مساحة واحدة.</p>
+            </div>
           </div>
+          <button onClick={onBackToApp} className="bg-white/10 hover:bg-white/15 text-white font-bold text-xs px-4 py-2.5 rounded-xl border border-white/15 flex items-center gap-1.5 transition-colors w-full lg:w-auto justify-center">
+            <ArrowLeft className="w-4 h-4 rtl:rotate-0 ltr:rotate-180" />
+            <span>العودة إلى المنصة</span>
+          </button>
         </div>
-
-        <button
-          onClick={onBackToApp}
-          className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl border border-slate-700 flex items-center gap-1.5 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 rtl:rotate-0 ltr:rotate-180" />
-          <span>العودة للمنصة</span>
-        </button>
+        <div className="relative mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="rounded-2xl bg-white/7 border border-white/10 px-3 py-2.5"><div className="text-[10px] text-slate-400">إعلانات نشطة</div><div className="text-lg font-black mt-0.5">{listings.filter((listing) => listing.status === 'active').length}</div></div>
+          <div className="rounded-2xl bg-white/7 border border-white/10 px-3 py-2.5"><div className="text-[10px] text-slate-400">المستخدمون</div><div className="text-lg font-black mt-0.5">{allUsers.length}</div></div>
+          <div className="rounded-2xl bg-white/7 border border-white/10 px-3 py-2.5"><div className="text-[10px] text-slate-400">بلاغات معلقة</div><div className="text-lg font-black text-amber-300 mt-0.5">{reports.filter((report) => report.status === 'pending').length}</div></div>
+          <div className="rounded-2xl bg-white/7 border border-white/10 px-3 py-2.5"><div className="text-[10px] text-slate-400">التغطية</div><div className="text-lg font-black mt-0.5">{stats.activeWilayasCount}<span className="text-xs text-slate-400"> / 69</span></div></div>
+        </div>
       </div>
 
       {/* KPI Stats Grid */}
@@ -180,6 +193,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <AlertTriangle className="w-4 h-4" />
           <span>البلاغات والأمان ({reports.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('users')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'users' ? 'bg-[#0B192C] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <UserRound className="w-4 h-4" />
+          <span>المستخدمون ({allUsers.length})</span>
         </button>
 
         <button
@@ -356,6 +379,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </span>
                       )}
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: User Directory */}
+        {activeTab === 'users' && (
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-black text-base text-slate-900 font-serif">دليل مجتمع كِتابي</h3>
+                <p className="text-xs text-slate-500 mt-1">متابعة الحسابات والأدوار وحالة المجتمع من مكان واحد.</p>
+              </div>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute right-3 top-3 w-4 h-4 text-slate-400" />
+                <input value={userQuery} onChange={(event) => setUserQuery(event.target.value)} placeholder="ابحث بالاسم أو البريد" className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pr-9 pl-3 text-xs outline-none focus:border-emerald-500" />
+              </div>
+            </div>
+            {filteredUsers.length === 0 ? (
+              <div className="p-10 text-center text-sm text-slate-400">لا توجد حسابات مطابقة حاليًا.</div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {filteredUsers.map((user) => (
+                  <div key={user.id} className="p-4 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img src={user.avatar} alt="" className="w-10 h-10 rounded-xl object-cover bg-slate-100 shrink-0" />
+                      <div className="min-w-0"><div className="font-bold text-sm text-slate-900 truncate">{user.name}</div><div className="text-[11px] text-slate-500 truncate" dir="ltr">{user.email || 'بدون بريد'}</div></div>
+                    </div>
+                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-full shrink-0 ${user.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>{user.role === 'admin' ? 'مسؤول' : 'مستخدم'}</span>
                   </div>
                 ))}
               </div>
