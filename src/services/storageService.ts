@@ -61,7 +61,7 @@ export class StorageService {
   private static currentUid: string | null = null;
   private static listingsSnapshot: BookListing[] = INITIAL_LISTINGS;
 
-  static setAuthUser(firebaseUser: FirebaseUser | null, profile: User | null) {
+  static setAuthUser(firebaseUser: Pick<FirebaseUser, 'uid'> | null, profile: User | null) {
     this.currentUid = firebaseUser?.uid ?? null;
     this.currentUser = profile;
   }

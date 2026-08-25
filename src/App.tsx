@@ -143,7 +143,7 @@ export default function App() {
         role: data.role === 'admin' ? 'admin' : 'user',
       };
       setCurrentUser(profile);
-      StorageService.setAuthUser(null, profile);
+      StorageService.setAuthUser({ uid: userId }, profile);
     };
     supabase.auth.getSession().then(async ({ data: sessionData }) => {
       try {
@@ -328,7 +328,7 @@ export default function App() {
       joinedDate: profileData.joined_date || new Date().toISOString(), role: profileData.role === 'admin' ? 'admin' : 'user',
     };
     setCurrentUser(profile);
-    StorageService.setAuthUser(null, profile);
+    StorageService.setAuthUser({ uid: data.user.id }, profile);
   };
 
   // Toggle favorite
