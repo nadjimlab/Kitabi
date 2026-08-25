@@ -18,6 +18,7 @@ import {
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { User as FirebaseUser } from 'firebase/auth';
 import { db, isFirebaseConfigured, storage } from '../lib/firebase';
+import { supabase, isSupabaseConfigured, SUPABASE_BUCKET } from './supabaseClient';
 import {
   BookListing,
   User,
@@ -146,20 +147,29 @@ export class StorageService {
   }
 
   static async getListings(): Promise<BookListing[]> {
-    if (!firestoreReady() || !db) {
-      this.listingsSnapshot = INITIAL_LISTINGS;
-      return INITIAL_LISTINGS;
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.from('listings').select('*, seller:profiles(*)').eq('status', 'active').order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) {
+          const listings = data.map((row) => this.mapSupabaseListing(row as Record<string, unknown>));
+          this.listingsSnapshot = listings;
+          return listings;
+        }
+      } catch (error) { console.warn('Supabase listings read failed', error); }
     }
+    if (!firestoreReady() || !db) { this.listingsSnapshot = INITIAL_LISTINGS; return INITIAL_LISTINGS; }
     try {
       const snapshot = await getDocs(collection(db, 'listings'));
       const listings = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as BookListing);
       this.listingsSnapshot = listings.length > 0 ? listings : INITIAL_LISTINGS;
       return this.listingsSnapshot;
-    } catch (error) {
-      console.error('Firestore listings read failed', error);
-      this.listingsSnapshot = INITIAL_LISTINGS;
-      return INITIAL_LISTINGS;
-    }
+    } catch (error) { console.error('Firestore listings read failed', error); this.listingsSnapshot = INITIAL_LISTINGS; return INITIAL_LISTINGS; }
+  }
+  private static mapSupabaseListing(row: Record<string, unknown>): BookListing {
+    const sellerRow = (row.seller || {}) as Record<string, unknown>;
+    const sellerId = String(row.seller_id || '');
+    const seller = ({ id: sellerId, name: String(sellerRow.name || 'مستخدم كتابي'), email: String(sellerRow.email || ''), phone: String(sellerRow.phone || ''), avatar: String(sellerRow.avatar || ''), wilayaCode: Number(sellerRow.wilaya_code || row.wilaya_code || 16), municipality: String(sellerRow.municipality || row.municipality || ''), rating: Number(sellerRow.rating || 0), reviewsCount: Number(sellerRow.reviews_count || 0), isVerified: Boolean(sellerRow.is_verified), isBookstore: Boolean(sellerRow.is_bookstore), joinedDate: String(sellerRow.joined_date || ''), role: (sellerRow.role as User['role']) || 'user' }) as User;
+    return { id: String(row.id), title: String(row.title || ''), author: row.author ? String(row.author) : undefined, publisher: row.publisher ? String(row.publisher) : undefined, year: row.publication_year ? Number(row.publication_year) : undefined, level: String(row.level || 'general') as EducationLevel, grade: String(row.grade || ''), gradeCode: String(row.grade_code || ''), stream: row.stream ? String(row.stream) : undefined, subject: String(row.subject || ''), condition: String(row.condition || 'good') as BookListing['condition'], dealType: String(row.deal_type || 'sale') as BookListing['dealType'], price: Number(row.price || 0), originalPrice: row.original_price ? Number(row.original_price) : undefined, exchangeFor: row.exchange_for ? String(row.exchange_for) : undefined, description: String(row.description || ''), photos: Array.isArray(row.photos) ? row.photos as string[] : [], wilayaCode: Number(row.wilaya_code || 16), wilayaNameAr: String(row.wilaya_name_ar || ''), wilayaNameFr: String(row.wilaya_name_fr || ''), municipality: String(row.municipality || ''), deliveryAvailable: Boolean(row.delivery_available), handDeliveryOnly: Boolean(row.hand_delivery_only), hasPencilMarks: Boolean(row.has_pencil_marks), hasAnswersIncluded: Boolean(row.has_answers_included), includesCD: Boolean(row.includes_cd), sellerId, seller, createdAt: String(row.created_at || ''), views: Number(row.views || 0), favoritesCount: Number(row.favorites_count || 0), isFeatured: Boolean(row.is_featured), status: String(row.status || 'active') as BookListing['status'] };
   }
 
   static async getListingById(id: string): Promise<BookListing | undefined> {
@@ -169,14 +179,16 @@ export class StorageService {
   }
 
   static async saveListing(listing: BookListing): Promise<BookListing> {
-    if (!firestoreReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول قبل نشر إعلان.');
-    await setDoc(doc(db, 'listings', listing.id), {
-      ...asRecord(listing),
-      sellerId: this.currentUid,
-      updatedAt: formatNow(),
-    });
-    this.listingsSnapshot = [listing, ...this.listingsSnapshot.filter((item) => item.id !== listing.id)];
-    return listing;
+    const sellerId = this.currentUser?.id || this.currentUid;
+    if (isSupabaseConfigured && sellerId) {
+      const row = { id: listing.id, seller_id: sellerId, title: listing.title, author: listing.author || null, publisher: listing.publisher || null, publication_year: listing.year || null, level: listing.level, grade: listing.grade, grade_code: listing.gradeCode, stream: listing.stream || null, subject: listing.subject, condition: listing.condition, deal_type: listing.dealType, price: listing.price, original_price: listing.originalPrice || null, exchange_for: listing.exchangeFor || null, description: listing.description, photos: listing.photos, wilaya_code: listing.wilayaCode, wilaya_name_ar: listing.wilayaNameAr, wilaya_name_fr: listing.wilayaNameFr, municipality: listing.municipality, delivery_available: listing.deliveryAvailable, hand_delivery_only: listing.handDeliveryOnly, has_pencil_marks: Boolean(listing.hasPencilMarks), has_answers_included: Boolean(listing.hasAnswersIncluded), includes_cd: Boolean(listing.includesCD), views: listing.views, favorites_count: listing.favoritesCount, is_featured: Boolean(listing.isFeatured), status: 'pending' };
+      const { error } = await supabase.from('listings').upsert(row);
+      if (!error) { this.listingsSnapshot = [listing, ...this.listingsSnapshot.filter((item) => item.id !== listing.id)]; return listing; }
+      throw error;
+    }
+    if (!firestoreReady() || !db || !sellerId) throw new Error('يجب تسجيل الدخول قبل نشر إعلان.');
+    await setDoc(doc(db, 'listings', listing.id), { ...asRecord(listing), sellerId, updatedAt: formatNow() });
+    this.listingsSnapshot = [listing, ...this.listingsSnapshot.filter((item) => item.id !== listing.id)]; return listing;
   }
 
   static async deleteListing(id: string): Promise<boolean> {
@@ -199,12 +211,22 @@ export class StorageService {
   }
 
   static async uploadBookImage(file: File, listingId: string): Promise<string> {
-    if (!firebaseReady() || !storage || !this.currentUid) throw new Error('يجب تسجيل الدخول لرفع الصور.');
+    const ownerId = this.currentUser?.id || this.currentUid;
+    if (isSupabaseConfigured && ownerId) {
+      if (!file.type.startsWith('image/')) throw new Error('يسمح برفع الصور فقط.');
+      if (file.size > 5 * 1024 * 1024) throw new Error('حجم الصورة الأقصى هو 5 ميغابايت.');
+      const path = `book-covers/${ownerId}/${listingId}-${crypto.randomUUID()}.${file.name.split('.').pop() || 'jpg'}`;
+      const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+      if (error) throw error;
+      const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
+      return data.publicUrl;
+    }
+    if (!firebaseReady() || !storage || !ownerId) throw new Error('يجب تسجيل الدخول لرفع الصور.');
     if (!file.type.startsWith('image/')) throw new Error('يسمح برفع الصور فقط.');
     if (file.size > 5 * 1024 * 1024) throw new Error('حجم الصورة الأقصى هو 5 ميغابايت.');
     const extension = file.name.split('.').pop() || 'jpg';
-    const imageRef = ref(storage, `book-covers/${this.currentUid}/${listingId}-${crypto.randomUUID()}.${extension}`);
-    await uploadBytes(imageRef, file, { contentType: file.type, customMetadata: { ownerId: this.currentUid } });
+    const imageRef = ref(storage, `book-covers/${ownerId}/${listingId}-${crypto.randomUUID()}.${extension}`);
+    await uploadBytes(imageRef, file, { contentType: file.type, customMetadata: { ownerId } });
     return getDownloadURL(imageRef);
   }
 

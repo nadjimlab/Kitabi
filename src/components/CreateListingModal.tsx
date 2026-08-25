@@ -122,7 +122,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
     }
 
     const newListing: BookListing = {
-      id: `book-${Date.now()}`,
+      id: crypto.randomUUID(),
       title: title.trim() || `كتاب ${subject} - ${gradeName}`,
       publisher: publisher.trim(),
       year: Number(year) || 2024,
