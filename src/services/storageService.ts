@@ -219,7 +219,7 @@ export class StorageService {
     if (isSupabaseConfigured && ownerId) {
       if (!file.type.startsWith('image/')) throw new Error('يسمح برفع الصور فقط.');
       if (file.size > 5 * 1024 * 1024) throw new Error('حجم الصورة الأقصى هو 5 ميغابايت.');
-      const path = `book-covers/${ownerId}/${listingId}-${crypto.randomUUID()}.${file.name.split('.').pop() || 'jpg'}`;
+      const path = `${ownerId}/${listingId}-${crypto.randomUUID()}.${file.name.split('.').pop() || 'jpg'}`;
       const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
       if (error) throw error;
       const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
