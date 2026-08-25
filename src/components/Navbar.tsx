@@ -142,7 +142,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-2 sm:gap-3">
             
             {/* Wilaya Selector Dropdown */}
-            <div className="relative">
+            <div className="relative hidden sm:block">
               <button
                 id="navbar-wilaya-btn"
                 onClick={() => setShowWilayaMenu(!showWilayaMenu)}
@@ -206,10 +206,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="navbar-add-book-cta"
               onClick={onOpenCreateListing}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl shadow-md shadow-emerald-950/40 hover:shadow-emerald-700/30 transition-all transform active:scale-95 shrink-0"
+              className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs sm:text-sm px-2.5 sm:px-3.5 py-2 rounded-xl shadow-md shadow-emerald-950/40 hover:shadow-emerald-700/30 transition-all transform active:scale-95 shrink-0"
+              aria-label={lang === 'ar' ? 'أضف كتابك' : 'Publier'}
             >
               <PlusCircle className="w-4 h-4 text-emerald-100" />
-              <span>{lang === 'ar' ? 'أضف كتابك' : 'Publier'}</span>
+              <span className="hidden sm:inline">{lang === 'ar' ? 'أضف كتابك' : 'Publier'}</span>
             </button>
 
             {/* User Profile / Phone Auth */}

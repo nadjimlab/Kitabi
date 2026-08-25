@@ -104,3 +104,50 @@ button:not(:disabled):active {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* Mobile stability: preserve the visual system while preventing horizontal overflow. */
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 639px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  table {
+    min-width: 620px;
+  }
+}
