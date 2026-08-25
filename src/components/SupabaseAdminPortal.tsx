@@ -47,7 +47,8 @@ export const SupabaseAdminPortal: React.FC = () => {
       supabase.from('listings').select('id,title,status,created_at,level,deal_type').order('created_at', { ascending: false }).limit(6),
       supabase.from('profiles').select('id,name,email,role,created_at').order('created_at', { ascending: false }).limit(5),
     ]);
-    const failed = [users, listings, active, reports, ratings, messages, exchanges, favorites, recentListings, recentUsers].find((result) => result.error);
+    // Ratings and interaction tables are optional during staged setup; core dashboard data remains strict.
+    const failed = [users, listings, active, reports, recentListings, recentUsers].find((result) => result.error);
     if (failed?.error) throw failed.error;
     setData({ users: users.count || 0, listings: listings.count || 0, activeListings: active.count || 0, pendingReports: reports.count || 0, ratings: ratings.count || 0, messages: messages.count || 0, exchanges: exchanges.count || 0, favorites: favorites.count || 0, recentListings: (recentListings.data || []) as DashboardData['recentListings'], recentUsers: (recentUsers.data || []) as DashboardData['recentUsers'] });
     setLoading(false);
