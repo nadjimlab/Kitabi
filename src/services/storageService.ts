@@ -1,4 +1,15 @@
-import { BookListing, User, ExchangeRequest, ChatConversation, ChatMessage, ReportItem, FilterState, EducationLevel } from '../types';
+import { 
+  BookListing, 
+  User, 
+  ExchangeRequest, 
+  ChatConversation, 
+  ChatMessage, 
+  ReportItem, 
+  FilterState, 
+  EducationLevel,
+  RecentSearchItem,
+  CachedSearchEntry
+} from '../types';
 import { INITIAL_LISTINGS, INITIAL_USERS, INITIAL_EXCHANGE_REQUESTS, WILAYAS } from '../data/algerianData';
 
 const LISTINGS_KEY = 'ktabi_listings_v1';
@@ -7,6 +18,14 @@ const CURRENT_USER_KEY = 'ktabi_current_user_v1';
 const REQUESTS_KEY = 'ktabi_exchange_requests_v1';
 const CHATS_KEY = 'ktabi_chats_v1';
 const REPORTS_KEY = 'ktabi_reports_v1';
+const SEARCH_CACHE_KEY = 'ktabi_search_cache_v1';
+const RECENT_SEARCHES_KEY = 'ktabi_recent_searches_v1';
+const LAST_FILTERS_KEY = 'ktabi_last_filters_v1';
+
+// Cache validity: 30 minutes (1800000 ms)
+const CACHE_TTL_MS = 30 * 60 * 1000;
+const MAX_CACHE_ENTRIES = 20;
+const MAX_RECENT_SEARCHES = 12;
 
 export class StorageService {
   // Initialize storage if empty
@@ -129,6 +148,7 @@ export class StorageService {
       listings.unshift(listing);
     }
     localStorage.setItem(LISTINGS_KEY, JSON.stringify(listings));
+    this.invalidateSearchCache();
     return listing;
   }
 
@@ -136,6 +156,7 @@ export class StorageService {
     const listings = this.getListings();
     const filtered = listings.filter(l => l.id !== id);
     localStorage.setItem(LISTINGS_KEY, JSON.stringify(filtered));
+    this.invalidateSearchCache();
     return true;
   }
 
@@ -145,6 +166,7 @@ export class StorageService {
     if (target) {
       target.status = status;
       localStorage.setItem(LISTINGS_KEY, JSON.stringify(listings));
+      this.invalidateSearchCache();
       return true;
     }
     return false;
@@ -488,5 +510,256 @@ export class StorageService {
       estimatedSavingsDZD,
       activeWilayasCount
     };
+  }
+
+  // ==========================================
+  // --- Search Results Caching Subsystem ---
+  // ==========================================
+
+  static generateCacheKey(filters: FilterState): string {
+    return JSON.stringify({
+      q: (filters.searchQuery || '').trim().toLowerCase(),
+      lvl: filters.level || 'all',
+      gc: filters.gradeCode || '',
+      st: filters.stream || '',
+      sub: filters.subject || '',
+      w: filters.wilayaCode || 0,
+      mun: filters.municipality || '',
+      dt: filters.dealType || 'all',
+      cond: filters.condition || 'all',
+      min: filters.minPrice || 0,
+      max: filters.maxPrice || 3000,
+      free: !!filters.onlyFree,
+      exc: !!filters.onlyExchange,
+      deliv: !!filters.deliveryOnly,
+      sb: filters.sortBy || 'latest'
+    });
+  }
+
+  /**
+   * Retrieves cached search results for the given filter state if available & valid.
+   */
+  static getCachedSearchResults(filters: FilterState): { 
+    results: BookListing[]; 
+    timestamp: number; 
+    hitCount: number; 
+    resultCount: number;
+    isCacheValid: boolean;
+  } | null {
+    try {
+      const stored = localStorage.getItem(SEARCH_CACHE_KEY);
+      if (!stored) return null;
+
+      const cacheEntries: CachedSearchEntry[] = JSON.parse(stored);
+      const targetKey = this.generateCacheKey(filters);
+      const entryIndex = cacheEntries.findIndex(e => e.cacheKey === targetKey);
+
+      if (entryIndex === -1) return null;
+
+      const entry = cacheEntries[entryIndex];
+      const ageMs = Date.now() - entry.timestamp;
+
+      // If expired (older than CACHE_TTL_MS), evict entry
+      if (ageMs > CACHE_TTL_MS) {
+        cacheEntries.splice(entryIndex, 1);
+        localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(cacheEntries));
+        return null;
+      }
+
+      // Cache hit: Increment hit count and update entry
+      entry.hitCount = (entry.hitCount || 1) + 1;
+      localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(cacheEntries));
+
+      return {
+        results: entry.results,
+        timestamp: entry.timestamp,
+        hitCount: entry.hitCount,
+        resultCount: entry.resultCount,
+        isCacheValid: true
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Caches the search results in localStorage for subsequent instant retrieval.
+   */
+  static setCachedSearchResults(filters: FilterState, results: BookListing[]) {
+    try {
+      const stored = localStorage.getItem(SEARCH_CACHE_KEY);
+      let cacheEntries: CachedSearchEntry[] = stored ? JSON.parse(stored) : [];
+
+      const targetKey = this.generateCacheKey(filters);
+      const existingIdx = cacheEntries.findIndex(e => e.cacheKey === targetKey);
+
+      const newEntry: CachedSearchEntry = {
+        cacheKey: targetKey,
+        filters: { ...filters },
+        results: [...results],
+        timestamp: Date.now(),
+        resultCount: results.length,
+        hitCount: existingIdx >= 0 ? (cacheEntries[existingIdx].hitCount || 1) + 1 : 1
+      };
+
+      if (existingIdx >= 0) {
+        cacheEntries[existingIdx] = newEntry;
+      } else {
+        cacheEntries.unshift(newEntry);
+      }
+
+      // Keep only most recent MAX_CACHE_ENTRIES entries to prevent quota overflow
+      if (cacheEntries.length > MAX_CACHE_ENTRIES) {
+        cacheEntries = cacheEntries.slice(0, MAX_CACHE_ENTRIES);
+      }
+
+      localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(cacheEntries));
+    } catch (e) {
+      console.warn('LocalStorage cache write error (quota reached or private mode):', e);
+    }
+  }
+
+  /**
+   * Invalidate search cache when data changes (e.g. new listing, deletion, or manual refresh)
+   */
+  static invalidateSearchCache() {
+    try {
+      localStorage.removeItem(SEARCH_CACHE_KEY);
+    } catch {
+      // ignore
+    }
+  }
+
+  // ==========================================
+  // --- Recent Searches History Subsystem ---
+  // ==========================================
+
+  static getRecentSearches(): RecentSearchItem[] {
+    try {
+      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  static saveRecentSearch(
+    query: string, 
+    filters: Partial<FilterState> = {}, 
+    resultCount: number = 0
+  ): RecentSearchItem[] {
+    const trimmed = (query || '').trim();
+    // Do not save completely empty queries with default filters
+    if (!trimmed && (!filters.level || filters.level === 'all') && (!filters.wilayaCode || filters.wilayaCode === 0)) {
+      return this.getRecentSearches();
+    }
+
+    try {
+      let recent = this.getRecentSearches();
+
+      // Deduplicate matching query + level + wilaya
+      recent = recent.filter(r => {
+        const sameQuery = r.query.toLowerCase() === trimmed.toLowerCase();
+        const sameLevel = (r.level || 'all') === (filters.level || 'all');
+        const sameWilaya = (r.wilayaCode || 0) === (filters.wilayaCode || 0);
+        return !(sameQuery && sameLevel && sameWilaya);
+      });
+
+      const newItem: RecentSearchItem = {
+        id: 'search-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+        query: trimmed,
+        level: filters.level || 'all',
+        wilayaCode: filters.wilayaCode || 0,
+        dealType: filters.dealType || 'all',
+        timestamp: Date.now(),
+        resultCount
+      };
+
+      recent.unshift(newItem);
+
+      if (recent.length > MAX_RECENT_SEARCHES) {
+        recent = recent.slice(0, MAX_RECENT_SEARCHES);
+      }
+
+      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent));
+      return recent;
+    } catch {
+      return [];
+    }
+  }
+
+  static removeRecentSearch(id: string): RecentSearchItem[] {
+    try {
+      let recent = this.getRecentSearches();
+      recent = recent.filter(r => r.id !== id);
+      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent));
+      return recent;
+    } catch {
+      return [];
+    }
+  }
+
+  static clearRecentSearches(): boolean {
+    try {
+      localStorage.removeItem(RECENT_SEARCHES_KEY);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ==========================================
+  // --- Persistent Marketplace Filter State ---
+  // ==========================================
+
+  static getLastMarketplaceFilters(): FilterState | null {
+    try {
+      const stored = localStorage.getItem(LAST_FILTERS_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  static saveLastMarketplaceFilters(filters: FilterState) {
+    try {
+      localStorage.setItem(LAST_FILTERS_KEY, JSON.stringify(filters));
+    } catch {
+      // ignore
+    }
+  }
+
+  static getCacheStats(): {
+    cachedQueriesCount: number;
+    recentSearchesCount: number;
+    estimatedSavedKb: number;
+    lastCachedAt: number | null;
+  } {
+    try {
+      const storedCache = localStorage.getItem(SEARCH_CACHE_KEY);
+      const storedRecent = localStorage.getItem(RECENT_SEARCHES_KEY);
+
+      const cacheEntries: CachedSearchEntry[] = storedCache ? JSON.parse(storedCache) : [];
+      const recentEntries: RecentSearchItem[] = storedRecent ? JSON.parse(storedRecent) : [];
+
+      const totalHits = cacheEntries.reduce((acc, c) => acc + (c.hitCount || 1), 0);
+      // Rough estimation: each cache hit saves ~15-40 KB of JSON / assets payload
+      const estimatedSavedKb = totalHits * 25;
+      const lastCachedAt = cacheEntries.length > 0 ? cacheEntries[0].timestamp : null;
+
+      return {
+        cachedQueriesCount: cacheEntries.length,
+        recentSearchesCount: recentEntries.length,
+        estimatedSavedKb,
+        lastCachedAt
+      };
+    } catch {
+      return {
+        cachedQueriesCount: 0,
+        recentSearchesCount: 0,
+        estimatedSavedKb: 0,
+        lastCachedAt: null
+      };
+    }
   }
 }

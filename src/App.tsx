@@ -40,6 +40,8 @@ import { ReportModal } from './components/ReportModal';
 import { UserProfileView } from './components/UserProfileView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { FilterDrawer } from './components/FilterDrawer';
+import { RecentSearchesBar } from './components/RecentSearchesBar';
+import { RecentSearchItem } from './types';
 
 const initialFilters: FilterState = {
   searchQuery: '',
@@ -70,6 +72,13 @@ export default function App() {
   const [favorites, setFavorites] = useState<string[]>(StorageService.getFavorites());
   const [filters, setFilters] = useState<FilterState>(initialFilters);
 
+  // Search Results Caching & History States
+  const [displayedListings, setDisplayedListings] = useState<BookListing[]>([]);
+  const [isFromCache, setIsFromCache] = useState<boolean>(false);
+  const [cacheTimestamp, setCacheTimestamp] = useState<number | null>(null);
+  const [cacheHitCount, setCacheHitCount] = useState<number>(1);
+  const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>(StorageService.getRecentSearches());
+
   // Modals & Drawers
   const [selectedBook, setSelectedBook] = useState<BookListing | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -94,11 +103,81 @@ export default function App() {
     document.documentElement.lang = lang;
   }, [lang]);
 
+  // Restore last marketplace filters on first mount
+  useEffect(() => {
+    const saved = StorageService.getLastMarketplaceFilters();
+    if (saved) {
+      setFilters(saved);
+    }
+  }, []);
+
+  // Search Results Local Caching Engine
+  useEffect(() => {
+    const cached = StorageService.getCachedSearchResults(filters);
+    if (cached) {
+      setDisplayedListings(cached.results);
+      setIsFromCache(true);
+      setCacheTimestamp(cached.timestamp);
+      setCacheHitCount(cached.hitCount);
+    } else {
+      const freshResults = StorageService.filterListings(listings, filters);
+      setDisplayedListings(freshResults);
+      setIsFromCache(false);
+      const now = Date.now();
+      setCacheTimestamp(now);
+      setCacheHitCount(1);
+      StorageService.setCachedSearchResults(filters, freshResults);
+    }
+
+    // Save recent search if non-empty query or custom level/wilaya
+    if (filters.searchQuery.trim() || (filters.level && filters.level !== 'all') || (filters.wilayaCode && filters.wilayaCode !== 0)) {
+      const fresh = StorageService.filterListings(listings, filters);
+      const updated = StorageService.saveRecentSearch(filters.searchQuery, filters, fresh.length);
+      setRecentSearches(updated);
+    }
+
+    StorageService.saveLastMarketplaceFilters(filters);
+  }, [listings, filters]);
+
+  // Force-refresh search results & update cache
+  const handleForceRefreshResults = () => {
+    const fresh = StorageService.filterListings(listings, filters);
+    setDisplayedListings(fresh);
+    setIsFromCache(false);
+    const now = Date.now();
+    setCacheTimestamp(now);
+    setCacheHitCount(1);
+    StorageService.setCachedSearchResults(filters, fresh);
+  };
+
+  // Recent Searches Actions
+  const handleSelectRecentSearch = (item: RecentSearchItem) => {
+    setFilters(prev => ({
+      ...prev,
+      searchQuery: item.query,
+      level: item.level || 'all',
+      wilayaCode: item.wilayaCode || 0,
+      dealType: item.dealType || 'all'
+    }));
+    setCurrentView('marketplace');
+  };
+
+  const handleRemoveRecentSearch = (id: string) => {
+    const updated = StorageService.removeRecentSearch(id);
+    setRecentSearches(updated);
+  };
+
+  const handleClearRecentSearches = () => {
+    StorageService.clearRecentSearches();
+    setRecentSearches([]);
+  };
+
   // Refresh listings & stats from storage
   const refreshData = () => {
     setListings(StorageService.getListings());
     setFavorites(StorageService.getFavorites());
     setStats(StorageService.getPlatformStats());
+    setRecentSearches(StorageService.getRecentSearches());
   };
 
   // Toggle favorite
@@ -190,6 +269,8 @@ export default function App() {
               lang={lang}
               selectedWilayaCode={filters.wilayaCode}
               onSelectWilaya={(code) => handleFilterChange({ wilayaCode: code })}
+              recentSearches={recentSearches}
+              onSelectRecentSearch={handleSelectRecentSearch}
             />
 
             {/* Quick Education Stages Pills Bar */}
@@ -492,13 +573,31 @@ export default function App() {
               </div>
             )}
 
-            {/* Results Counter */}
-            <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
-              <span>تم العثور على {filteredListings.length} كتاب</span>
+            {/* Local Storage Search Caching & History Bar */}
+            <RecentSearchesBar
+              recentSearches={recentSearches}
+              onSelectRecentSearch={handleSelectRecentSearch}
+              onRemoveRecentSearch={handleRemoveRecentSearch}
+              onClearRecentSearches={handleClearRecentSearches}
+              isFromCache={isFromCache}
+              cacheTimestamp={cacheTimestamp}
+              cacheHitCount={cacheHitCount}
+              onRefreshResults={handleForceRefreshResults}
+              lang={lang}
+            />
+
+            {/* Results Counter & Cache Indicator */}
+            <div className="flex items-center justify-between text-xs text-slate-500 font-semibold flex-wrap gap-2">
+              <span>تم العثور على {displayedListings.length} كتاب</span>
+              {isFromCache && (
+                <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 text-[11px]">
+                  ⚡ مسترجع من الذاكرة المحلية (توفير الإنترنت)
+                </span>
+              )}
             </div>
 
             {/* Book Cards Grid */}
-            {filteredListings.length === 0 ? (
+            {displayedListings.length === 0 ? (
               <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-3">
                 <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
                 <h3 className="text-base font-bold text-slate-800">لم يتم العثور على كتب تطابق بحثك</h3>
@@ -514,7 +613,7 @@ export default function App() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                {filteredListings.map(book => (
+                {displayedListings.map(book => (
                   <BookCard
                     key={book.id}
                     book={book}

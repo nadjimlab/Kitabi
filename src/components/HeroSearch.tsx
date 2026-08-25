@@ -14,9 +14,10 @@ import {
   GraduationCap,
   Award,
   Backpack,
-  Building2
+  Building2,
+  Clock
 } from 'lucide-react';
-import { EducationLevel } from '../types';
+import { EducationLevel, RecentSearchItem } from '../types';
 import { EDUCATION_LEVELS, WILAYAS } from '../data/algerianData';
 
 interface HeroSearchProps {
@@ -32,6 +33,8 @@ interface HeroSearchProps {
   lang: 'ar' | 'fr';
   selectedWilayaCode: number;
   onSelectWilaya: (code: number) => void;
+  recentSearches?: RecentSearchItem[];
+  onSelectRecentSearch?: (item: RecentSearchItem) => void;
 }
 
 export const HeroSearch: React.FC<HeroSearchProps> = ({
@@ -40,7 +43,9 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
   stats,
   lang,
   selectedWilayaCode,
-  onSelectWilaya
+  onSelectWilaya,
+  recentSearches = [],
+  onSelectRecentSearch
 }) => {
   const [query, setQuery] = useState('');
   const [activeLevel, setActiveLevel] = useState<EducationLevel | 'all'>('all');
@@ -158,6 +163,28 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
               </button>
             ))}
           </div>
+
+          {/* Recent Searches history in Hero (if any) */}
+          {recentSearches && recentSearches.length > 0 && onSelectRecentSearch && (
+            <div className="mt-2 pt-2 border-t border-slate-800/60 flex items-center gap-1.5 flex-wrap text-xs">
+              <span className="text-slate-400 font-semibold flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                {lang === 'ar' ? 'عملياتك الأخيرة (مخزنة محلياً):' : 'Vos recherches récentes:'}
+              </span>
+              {recentSearches.slice(0, 4).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => onSelectRecentSearch(item)}
+                  className="px-2.5 py-0.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800/60 transition-colors text-[11px] font-semibold flex items-center gap-1"
+                >
+                  <span>{item.query ? `"${item.query}"` : 'تصفية سابقة'}</span>
+                  {item.resultCount > 0 && (
+                    <span className="text-[9px] text-emerald-400 font-mono">({item.resultCount})</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
 
         </div>
 

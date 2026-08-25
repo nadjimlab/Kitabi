@@ -138,3 +138,22 @@ export interface FilterState {
   deliveryOnly: boolean;
   sortBy: 'latest' | 'price_asc' | 'price_desc' | 'popular';
 }
+
+export interface RecentSearchItem {
+  id: string;
+  query: string;
+  level?: EducationLevel | 'all';
+  wilayaCode?: number;
+  dealType?: DealType | 'all';
+  timestamp: number;
+  resultCount: number;
+}
+
+export interface CachedSearchEntry {
+  cacheKey: string;
+  filters: FilterState;
+  results: BookListing[];
+  timestamp: number;
+  resultCount: number;
+  hitCount: number;
+}
