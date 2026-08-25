@@ -1,5 +1,6 @@
 import {
   addDoc,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -211,7 +212,7 @@ export class StorageService {
   static async getExchangeRequests(): Promise<ExchangeRequest[]> {
     if (!firebaseReady() || !db || !this.currentUid) return [];
     const requesterQuery = query(collection(db, 'exchangeRequests'), where('requesterId', '==', this.currentUid));
-    const sellerQuery = query(collection(db, 'exchangeRequests'), where('targetSellerId', '==', this.currentUid));
+    const sellerQuery = query(collection(db, 'exchangeRequests'), where('ownerId', '==', this.currentUid));
     const [requesterSnapshot, sellerSnapshot] = await Promise.all([getDocs(requesterQuery), getDocs(sellerQuery)]);
     const byId = new Map<string, ExchangeRequest>();
     [...requesterSnapshot.docs, ...sellerSnapshot.docs].forEach((item) => byId.set(item.id, { id: item.id, ...item.data() } as ExchangeRequest));
@@ -234,23 +235,21 @@ export class StorageService {
 
   static async getChats(): Promise<ChatConversation[]> {
     if (!firebaseReady() || !db || !this.currentUid) return [];
-    const conversationsQuery = query(collection(db, 'conversations'), where('participantIds', 'array-contains', this.currentUid), limit(50));
-    const snapshot = await getDocs(conversationsQuery);
-    const conversations = await Promise.all(snapshot.docs.map(async (item) => {
-      const data = item.data() as Omit<ChatConversation, 'messages'> & { participantIds: string[] };
-      const messagesSnapshot = await getDocs(query(collection(db, 'conversations', item.id, 'messages'), orderBy('createdAt', 'asc')));
-      const messages = messagesSnapshot.docs.map((message) => ({ id: message.id, ...message.data() }) as ChatMessage);
-      return { id: item.id, ...data, messages } as ChatConversation;
-    }));
+    const chatsQuery = query(collection(db, 'chats'), where('participantIds', 'array-contains', this.currentUid), limit(50));
+    const snapshot = await getDocs(chatsQuery);
+    const conversations = snapshot.docs.map((item) => {
+      const data = item.data() as Omit<ChatConversation, 'messages'> & { participantIds: string[]; messages?: ChatMessage[] };
+      return { id: item.id, ...data, messages: data.messages || [] } as ChatConversation;
+    });
     return conversations.sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
   }
 
   static async sendMessage(conversationId: string, text: string, senderUser: User, receiverUser: User, listing?: BookListing): Promise<ChatConversation> {
     if (!firebaseReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال رسالة.');
-    const conversationRef = doc(db, 'conversations', conversationId);
-    const messageRef = doc(collection(conversationRef, 'messages'));
+    const conversationRef = doc(db, 'chats', conversationId);
     const timestamp = formatNow();
-    const newMessage: ChatMessage = { id: messageRef.id, senderId: senderUser.id, receiverId: receiverUser.id, listingId: listing?.id, text: text.trim(), timestamp, isRead: false };
+    const messageId = `${this.currentUid}-${Date.now()}`;
+    const newMessage: ChatMessage = { id: messageId, senderId: senderUser.id, receiverId: receiverUser.id, listingId: listing?.id, text: text.trim(), timestamp, isRead: false };
     const conversation: Omit<ChatConversation, 'messages'> & { participantIds: string[] } = {
       id: conversationId,
       participantIds: [senderUser.id, receiverUser.id],
@@ -264,8 +263,7 @@ export class StorageService {
       lastMessageTime: timestamp,
       unreadCount: 0,
     };
-    await setDoc(conversationRef, asRecord(conversation), { merge: true });
-    await setDoc(messageRef, { ...asRecord(newMessage), createdAt: Date.now() });
+    await setDoc(conversationRef, { ...asRecord(conversation), messages: arrayUnion(asRecord(newMessage)) }, { merge: true });
     return { ...conversation, messages: [newMessage] } as ChatConversation;
   }
 

@@ -48,7 +48,7 @@ export const ExchangeTradeModal: React.FC<ExchangeTradeModalProps> = ({
       requesterPhone: currentUser.phone,
       targetListingId: targetBook.id,
       targetBookTitle: targetBook.title,
-      targetSellerId: targetBook.sellerId,
+      ownerId: targetBook.sellerId,
       offeredListingId: selectedBook?.id,
       offeredBookTitle: offeredTitle,
       offeredBookPhoto: offeredPhoto,

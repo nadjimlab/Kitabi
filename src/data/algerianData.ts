@@ -544,7 +544,7 @@ export const INITIAL_EXCHANGE_REQUESTS = [
     requesterPhone: "0550123456",
     targetListingId: "book-2",
     targetBookTitle: "حزمة كتب السنة الرابعة متوسط BEM كاملة",
-    targetSellerId: "user-fatima",
+    ownerId: "user-fatima",
     offeredListingId: "book-1",
     offeredBookTitle: "الميسر في الرياضيات 3 ثانوي - تحضير البكالوريا",
     offeredBookPhoto: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",

@@ -74,7 +74,7 @@ export interface ExchangeRequest {
   requesterPhone: string;
   targetListingId: string;
   targetBookTitle: string;
-  targetSellerId: string;
+  ownerId: string;
   offeredListingId?: string;
   offeredBookTitle: string;
   offeredBookPhoto?: string;
