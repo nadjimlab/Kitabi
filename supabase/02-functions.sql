@@ -1,5 +1,3 @@
-create index if not exists reports_status_created_idx on public.reports(status, created_at desc);
-
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -38,3 +36,8 @@ language sql
 stable
 security definer set search_path = public
 as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'admin'
+  );
+$$;

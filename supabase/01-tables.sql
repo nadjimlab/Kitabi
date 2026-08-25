@@ -119,3 +119,5 @@ create table if not exists public.reports (
 create index if not exists listings_status_created_idx on public.listings(status, created_at desc);
 create index if not exists listings_seller_idx on public.listings(seller_id);
 create index if not exists messages_chat_created_idx on public.messages(chat_id, created_at asc);
+create index if not exists reports_status_created_idx on public.reports(status, created_at desc);
+

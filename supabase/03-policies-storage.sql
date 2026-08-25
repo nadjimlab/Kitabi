@@ -1,9 +1,3 @@
-  select exists (
-    select 1 from public.profiles
-    where id = auth.uid() and role = 'admin'
-  );
-$$;
-
 create policy "profiles public read" on public.profiles for select using (true);
 create policy "profiles self update" on public.profiles for update using (id = auth.uid() or public.is_admin()) with check (id = auth.uid() or public.is_admin());
 create policy "profiles self insert" on public.profiles for insert with check (id = auth.uid());
