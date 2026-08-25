@@ -146,19 +146,9 @@ export default function App() {
   useEffect(() => {
     if (authLoading) return;
     const route = window.location.pathname.replace(/^\//, '').split('/')[0];
-    if (route === 'admin') {
-      if (isAdmin) {
-        setCurrentView('admin');
-      } else if (!currentUser) {
-        setPendingView('admin');
-        setIsAuthOpen(true);
-      } else {
-        window.history.replaceState({}, '', '/');
-        setCurrentView('home');
-      }
-      return;
-    }
-    if (route === 'control') {
+    if (route === 'admin' || route === 'control') {
+      // Both URLs now open the independent Supabase control center.
+      // Do not invoke the legacy Firebase guard for the admin route.
       setCurrentView('control');
       return;
     }
@@ -799,13 +789,7 @@ export default function App() {
         {/* VIEW 5: ADMIN DASHBOARD */}
         {currentView === 'control' && <SupabaseAdminPortal />}
 
-        {currentView === 'admin' && (
-          <AdminDashboard
-            listings={listings}
-            onBackToApp={() => navigate('home')}
-            lang={lang}
-          />
-        )}
+        {currentView === 'admin' && <SupabaseAdminPortal />}
 
         {currentView === 'terms' && <LegalPage type="terms" onBack={() => navigate('home')} lang={lang} />}
         {currentView === 'privacy' && <LegalPage type="privacy" onBack={() => navigate('home')} lang={lang} />}
