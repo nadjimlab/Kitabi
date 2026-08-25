@@ -27,6 +27,7 @@ import {
 } from './types';
 import { StorageService } from './services/storageService';
 import { supabase } from './services/supabaseClient';
+import { createNotification } from './services/notificationsService';
 import { EmailAuthModal } from './components/EmailAuthModal';
 import { LegalPage } from './components/LegalPage';
 import { EDUCATION_LEVELS, WILAYAS } from './data/algerianData';
@@ -327,7 +328,12 @@ export default function App() {
   // Toggle favorite
   const handleToggleFavorite = async (listingId: string) => {
     if (!currentUser) { setIsAuthOpen(true); return; }
+    const listing = listings.find((item) => item.id === listingId);
+    const wasFavorite = favorites.includes(listingId);
     await StorageService.toggleFavorite(listingId);
+    if (!wasFavorite && listing && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(listing.sellerId || '')) {
+      try { await createNotification({ recipient_id: listing.sellerId, actor_id: currentUser.id, listing_id: listing.id, type: 'favorite', title: 'إضافة إلى المفضلة', message: `أضاف ${currentUser.name} كتابك إلى المفضلة.` }); } catch (error) { console.warn('Favorite notification failed', error); }
+    }
     await refreshData();
   };
 
@@ -990,7 +996,7 @@ export default function App() {
           onClose={() => setIsTradeModalOpen(false)}
           currentUser={currentUser}
           userListings={listings.filter(l => l.sellerId === currentUser.id)}
-          onTradeProposed={() => { void refreshData(); }}
+            onTradeProposed={(request) => { void refreshData(); if (tradeTargetBook && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tradeTargetBook.sellerId || '')) { void createNotification({ recipient_id: tradeTargetBook.sellerId, actor_id: currentUser.id, listing_id: tradeTargetBook.id, type: 'exchange', title: 'طلب تبادل جديد', message: `${currentUser.name} أرسل طلب تبادل لكتابك.` }).catch((error) => console.warn('Exchange notification failed', error)); } void request; }}
           lang={lang}
         />
       )}

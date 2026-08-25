@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, BookOpen, CheckCheck, MapPin, Phone, MessageSquare } from 'lucide-react';
 import { User, BookListing, ChatConversation } from '../types';
 import { StorageService } from '../services/storageService';
+import { createNotification } from '../services/notificationsService';
 
 interface ChatMessengerModalProps {
   isOpen: boolean;
@@ -62,6 +63,9 @@ export const ChatMessengerModal: React.FC<ChatMessengerModalProps> = ({
     const txt = textToSend || inputText;
     if (!txt.trim()) return;
     const updated = await StorageService.sendMessage(convId, txt.trim(), currentUser, targetUser, targetBook || undefined);
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(targetUser.id)) {
+      void createNotification({ recipient_id: targetUser.id, actor_id: currentUser.id, listing_id: targetBook?.id || null, type: 'message', title: 'رسالة جديدة', message: `لديك رسالة جديدة من ${currentUser.name}.` }).catch((error) => console.warn('Message notification failed', error));
+    }
     setConversation((previous) => ({ ...(previous || updated), ...updated, messages: [...(previous?.messages || []), ...(updated.messages || [])] }));
     setInputText('');
   };
