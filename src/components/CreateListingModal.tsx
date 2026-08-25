@@ -98,8 +98,9 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = (Array.from(e.target.files || []) as File[]).filter((file) => file.type.startsWith('image/')).slice(0, 10);
     if (files.length === 0) return;
-    setPhotoFiles(files);
-    setPhotos(files.map((file) => URL.createObjectURL(file)));
+    const mergedFiles = [...photoFiles, ...files.filter((file) => !photoFiles.some((existing) => existing.name === file.name && existing.size === file.size))].slice(0, 10);
+    setPhotoFiles(mergedFiles);
+    setPhotos(mergedFiles.map((file) => URL.createObjectURL(file)));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -246,13 +247,13 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                     {photos[0] ? <img src={photos[0]} alt="Selected" className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 flex flex-col items-center justify-center text-emerald-700"><Camera className="w-6 h-6" /><span className="text-[10px] font-bold mt-1">أضف 5 صور</span></div>}
                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
                       <Camera className="w-5 h-5 mb-1" />
-                      <span className="text-[10px] font-bold">تغيير الصورة</span>
+                      <span className="text-[10px] font-bold">إضافة صور</span>
                     </div>
                     <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
                   </label>
 
                   <div className="flex-1 space-y-1">
-                    <span className="text-[11px] text-slate-500 font-medium block">{photos.length}/10 صور — يجب رفع 5 صور حقيقية على الأقل:</span>
+                    <span className="text-[11px] text-slate-500 font-medium block">{photos.length}/10 صور — اضغط لإضافة صورة أو عدة صور (الحد الأدنى 5):</span>
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
                       {photos.map((preset, idx) => (
                         <button
