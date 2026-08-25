@@ -51,7 +51,7 @@ export const SupabaseAdminPortal: React.FC = () => {
       optional(supabase.from('messages').select('id', { count: 'exact', head: true })),
       optional(supabase.from('exchange_requests').select('id', { count: 'exact', head: true })),
       optional(supabase.from('favorites').select('listing_id', { count: 'exact', head: true })),
-      supabase.from('listings').select('id,title,status,created_at,level,deal_type,photos,description,condition,price,seller:profiles(name,email,phone)').order('created_at', { ascending: false }).limit(6),
+      supabase.from('listings').select('id,title,status,created_at,level,deal_type,photos,description,condition,price,seller_id').order('created_at', { ascending: false }).limit(6),
       supabase.from('profiles').select('id,name,email,role,created_at').order('created_at', { ascending: false }).limit(5),
     ]);
     // Ratings and interaction tables are optional during staged setup; core dashboard data remains strict.
