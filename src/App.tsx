@@ -28,7 +28,7 @@ import {
 } from './types';
 import { StorageService } from './services/storageService';
 import { auth, isFirebaseConfigured } from './lib/firebase';
-import { PhoneAuthModal } from './components/PhoneAuthModal';
+import { EmailAuthModal } from './components/EmailAuthModal';
 import { LegalPage } from './components/LegalPage';
 import { EDUCATION_LEVELS, WILAYAS } from './data/algerianData';
 import { Navbar } from './components/Navbar';
@@ -939,7 +939,7 @@ export default function App() {
         />
       )}
 
-      <PhoneAuthModal
+      <EmailAuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         lang={lang}

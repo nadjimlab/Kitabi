@@ -234,10 +234,10 @@ export class StorageService {
 
   static async getChats(): Promise<ChatConversation[]> {
     if (!firebaseReady() || !db || !this.currentUid) return [];
-    const conversationsQuery = query(collection(db, 'conversations'), where('participants', 'array-contains', this.currentUid), limit(50));
+    const conversationsQuery = query(collection(db, 'conversations'), where('participantIds', 'array-contains', this.currentUid), limit(50));
     const snapshot = await getDocs(conversationsQuery);
     const conversations = await Promise.all(snapshot.docs.map(async (item) => {
-      const data = item.data() as Omit<ChatConversation, 'messages'> & { participants: string[] };
+      const data = item.data() as Omit<ChatConversation, 'messages'> & { participantIds: string[] };
       const messagesSnapshot = await getDocs(query(collection(db, 'conversations', item.id, 'messages'), orderBy('createdAt', 'asc')));
       const messages = messagesSnapshot.docs.map((message) => ({ id: message.id, ...message.data() }) as ChatMessage);
       return { id: item.id, ...data, messages } as ChatConversation;
@@ -251,9 +251,9 @@ export class StorageService {
     const messageRef = doc(collection(conversationRef, 'messages'));
     const timestamp = formatNow();
     const newMessage: ChatMessage = { id: messageRef.id, senderId: senderUser.id, receiverId: receiverUser.id, listingId: listing?.id, text: text.trim(), timestamp, isRead: false };
-    const conversation: Omit<ChatConversation, 'messages'> & { participants: string[] } = {
+    const conversation: Omit<ChatConversation, 'messages'> & { participantIds: string[] } = {
       id: conversationId,
-      participants: [senderUser.id, receiverUser.id],
+      participantIds: [senderUser.id, receiverUser.id],
       listingId: listing?.id,
       listingTitle: listing?.title,
       listingPhoto: listing?.photos?.[0],
