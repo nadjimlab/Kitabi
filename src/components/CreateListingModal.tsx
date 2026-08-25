@@ -45,6 +45,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
 }) => {
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   // Form State
   const [title, setTitle] = useState('');
@@ -105,7 +106,9 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSubmitError('');
 
+    try {
     const activeGradeObj = GRADES_BY_LEVEL[level].find(g => g.code === gradeCode);
     const gradeName = activeGradeObj ? activeGradeObj.nameAr : gradeCode;
 
@@ -159,9 +162,17 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
       status: 'pending'
     };
 
-    await onListingCreated(newListing);
-    setIsSubmitting(false);
+    await Promise.race([
+      onListingCreated(newListing),
+      new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('انتهت مهلة الاتصال. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.')), 20000))
+    ]);
     onClose();
+    } catch (error) {
+      console.error('Listing publish failed', error);
+      setSubmitError(error instanceof Error ? error.message : 'تعذر نشر الإعلان. حاول مرة أخرى.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -225,6 +236,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-5 space-y-5 flex-1">
+          {submitError && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 flex items-start gap-2"><AlertCircle className="w-5 h-5 shrink-0" /><span>{submitError}</span></div>}
           
           {/* STEP 1: Photos & Book Info */}
           {step === 1 && (

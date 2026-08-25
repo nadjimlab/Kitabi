@@ -369,9 +369,9 @@ export default function App() {
   // Creation callback
   const handleListingCreated = async (newListing: BookListing) => {
     await StorageService.saveListing(newListing);
-    await refreshData();
     setSelectedBook(newListing);
     setIsDetailsOpen(true);
+    void refreshData().catch((error) => console.warn('Background listing refresh failed', error));
   };
 
   // Start chat with user
