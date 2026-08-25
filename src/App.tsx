@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { 
   BookOpen, 
   Search, 
@@ -27,7 +26,7 @@ import {
   ExchangeRequest 
 } from './types';
 import { StorageService } from './services/storageService';
-import { auth, isFirebaseConfigured } from './lib/firebase';
+import { supabase } from './services/supabaseClient';
 import { EmailAuthModal } from './components/EmailAuthModal';
 import { LegalPage } from './components/LegalPage';
 import { EDUCATION_LEVELS, WILAYAS } from './data/algerianData';
@@ -113,33 +112,57 @@ export default function App() {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  // Firebase Authentication lifecycle
+  // Supabase Authentication lifecycle
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth) {
-      setAuthLoading(false);
-      StorageService.setAuthUser(null, null);
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let mounted = true;
+    const loadProfile = async (userId: string, email = '') => {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (error) throw error;
+      if (!mounted) return;
+      const profile: User = {
+        id: data.id,
+        name: data.name || 'مستخدم كتابي',
+        email: data.email || email,
+        phone: data.phone || '',
+        whatsapp: data.whatsapp || undefined,
+        avatar: data.avatar || '',
+        wilayaCode: data.wilaya_code || 16,
+        municipality: data.municipality || '',
+        rating: Number(data.rating || 5),
+        reviewsCount: data.reviews_count || 0,
+        isVerified: data.is_verified ?? true,
+        isBookstore: data.is_bookstore ?? false,
+        bookstoreName: data.bookstore_name || undefined,
+        joinedDate: data.joined_date || new Date().toISOString(),
+        bio: data.bio || undefined,
+        role: data.role === 'admin' ? 'admin' : 'user',
+      };
+      setCurrentUser(profile);
+    };
+    supabase.auth.getSession().then(async ({ data: sessionData }) => {
       try {
-        if (firebaseUser) {
-          const profile = await StorageService.getOrCreateUserProfile(firebaseUser);
-          StorageService.setAuthUser(firebaseUser, profile);
-          setCurrentUser(profile);
-        } else {
-          StorageService.setAuthUser(null, null);
-          setCurrentUser(null);
-        }
+        const user = sessionData.session?.user;
+        if (user) await loadProfile(user.id, user.email || '');
+        else if (mounted) setCurrentUser(null);
       } catch (error) {
-        console.error('Firebase auth profile error', error);
-        setCurrentUser(null);
+        console.error('Supabase profile error', error);
+        if (mounted) setCurrentUser(null);
       } finally {
-        setAuthLoading(false);
+        if (mounted) setAuthLoading(false);
       }
     });
-
-    return unsubscribe;
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      try {
+        if (session?.user) await loadProfile(session.user.id, session.user.email || '');
+        else if (mounted) setCurrentUser(null);
+      } catch (error) {
+        console.error('Supabase auth profile error', error);
+        if (mounted) setCurrentUser(null);
+      } finally {
+        if (mounted) setAuthLoading(false);
+      }
+    });
+    return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
 
   // Guard direct URL access to protected routes and resume the requested view after auth.
@@ -273,11 +296,17 @@ export default function App() {
   };
 
   const handleAuthSuccess = async () => {
-    const firebaseUser = auth?.currentUser;
-    if (!firebaseUser) throw new Error('لم يتم العثور على جلسة Firebase بعد تسجيل الدخول.');
-    const profile = await StorageService.getOrCreateUserProfile(firebaseUser);
-    StorageService.setAuthUser(firebaseUser, profile);
-    setCurrentUser(profile);
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) throw new Error('لم يتم العثور على جلسة Supabase بعد تسجيل الدخول.');
+    const { data: profileData, error } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+    if (error) throw error;
+    setCurrentUser({
+      id: profileData.id, name: profileData.name || 'مستخدم كتابي', email: profileData.email || data.user.email || '',
+      phone: profileData.phone || '', avatar: profileData.avatar || '', wilayaCode: profileData.wilaya_code || 16,
+      municipality: profileData.municipality || '', rating: Number(profileData.rating || 5), reviewsCount: profileData.reviews_count || 0,
+      isVerified: profileData.is_verified ?? true, isBookstore: profileData.is_bookstore ?? false,
+      joinedDate: profileData.joined_date || new Date().toISOString(), role: profileData.role === 'admin' ? 'admin' : 'user',
+    });
   };
 
   // Toggle favorite
@@ -780,7 +809,7 @@ export default function App() {
             onOpenCreateListing={() => setIsCreateOpen(true)}
             onOpenChatWithUser={(target) => handleOpenChat(target)}
             onNavigateToAdmin={() => navigate('admin')}
-            onSignOut={() => { if (auth) void signOut(auth); navigate('home'); }}
+            onSignOut={() => { void supabase.auth.signOut(); setCurrentUser(null); navigate('home'); }}
             isAdmin={isAdmin}
             lang={lang}
           />

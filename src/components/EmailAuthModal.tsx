@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { AlertCircle, CheckCircle2, Loader2, LockKeyhole, Mail, UserPlus, X } from 'lucide-react';
-import { auth, isFirebaseConfigured } from '../lib/firebase';
+import { supabase } from '../services/supabaseClient';
 
 interface EmailAuthModalProps {
   isOpen: boolean;
@@ -33,39 +32,33 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose,
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
-    if (!auth) {
-      setError('المصادقة غير مهيأة. تحقق من متغيرات Firebase.');
-      return;
-    }
     setIsSubmitting(true);
     try {
-      if (mode === 'register') {
-        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        if (name.trim()) await updateProfile(credential.user, { displayName: name.trim() });
-      } else {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
+      const result = mode === 'register'
+        ? await supabase.auth.signUp({ email: email.trim(), password, options: { data: { name: name.trim() || 'مستخدم كتابي' } } })
+        : await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (result.error) throw result.error;
+      if (mode === 'register' && !result.data.session) {
+        setError('تم إنشاء الحساب. تحقق من بريدك الإلكتروني ثم سجّل الدخول.');
+        return;
       }
       await onAuthenticated();
       onClose();
     } catch (authError) {
       console.error(authError);
-      const code = (authError as { code?: string }).code;
+      const code = (authError as { code?: string }).code || '';
       const messages: Record<string, string> = {
-        'auth/invalid-credential': 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
-        'auth/email-already-in-use': 'هذا البريد مستخدم مسبقًا.',
-        'auth/weak-password': 'كلمة المرور يجب أن تتكون من 6 أحرف على الأقل.',
-        'auth/invalid-email': 'أدخل بريدًا إلكترونيًا صحيحًا.',
-        'auth/too-many-requests': 'محاولات كثيرة. حاول بعد قليل.',
-        'auth/unauthorized-domain': 'نطاق الموقع غير مصرح به في Firebase Authentication. أضف kitabi-six.vercel.app إلى Authorized domains.',
-        'auth/operation-not-allowed': 'تسجيل الدخول بالبريد وكلمة المرور غير مفعّل في Firebase Authentication.',
-        'auth/network-request-failed': 'تعذر الوصول إلى Firebase Authentication. تحقق من اتصال الإنترنت وAuthorized domains.',
-        'auth/internal-error': 'حدث خطأ داخلي في Firebase Authentication. أعد المحاولة وتحقق من إعدادات المشروع.',
-        'permission-denied': 'تم تسجيل الدخول، لكن صلاحية قراءة ملف المستخدم مرفوضة في Firestore. راجع قواعد users.',
-        'failed-precondition': 'قاعدة Firestore غير مهيأة أو غير متاحة لهذا المشروع.',
-        'unavailable': 'تعذر الاتصال بـ Firebase. تحقق من الإنترنت وحاول مجددًا.',
+        invalid_credentials: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+        email_exists: 'هذا البريد مستخدم مسبقًا.',
+        weak_password: 'كلمة المرور يجب أن تتكون من 6 أحرف على الأقل.',
+        invalid_email: 'أدخل بريدًا إلكترونيًا صحيحًا.',
+        over_request_rate_limit: 'محاولات كثيرة. حاول بعد قليل.',
+        signup_disabled: 'إنشاء الحسابات غير مفعّل في Supabase Auth.',
+        email_not_confirmed: 'تحقق من بريدك الإلكتروني قبل تسجيل الدخول.',
+        network_error: 'تعذر الاتصال بـSupabase. تحقق من الإنترنت وحاول مجددًا.',
       };
-      const friendlyMessage = messages[code || ''] || 'تعذر إتمام العملية. تأكد من إعداد Firebase وقواعد Firestore.';
-      setError(code ? `${friendlyMessage} (${code})` : friendlyMessage);
+      const message = messages[code] || (authError instanceof Error ? authError.message : 'تعذر إتمام العملية عبر Supabase.');
+      setError(code ? `${message} (${code})` : message);
     } finally {
       setIsSubmitting(false);
     }
@@ -88,9 +81,9 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose,
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {!isFirebaseConfigured && (
+          {!supabase && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> <span>أضف متغيرات Firebase إلى ملف البيئة أولًا.</span>
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> <span>أضف متغيرات Supabase إلى ملف البيئة أولًا.</span>
             </div>
           )}
           {mode === 'register' && (
@@ -107,7 +100,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose,
             <label className="block text-xs font-bold text-slate-700 mb-1.5">كلمة المرور</label>
             <div className="relative"><LockKeyhole className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" /><input type="password" required minLength={6} dir="ltr" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="6 أحرف على الأقل" className="w-full bg-slate-50 text-slate-900 text-sm pl-10 pr-3.5 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500" /></div>
           </div>
-          <button type="submit" disabled={isSubmitting || !isFirebaseConfigured} className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black text-sm px-4 py-3 rounded-xl flex items-center justify-center gap-2">
+          <button type="submit" disabled={isSubmitting || !supabase} className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black text-sm px-4 py-3 rounded-xl flex items-center justify-center gap-2">
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : mode === 'login' ? <CheckCircle2 className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
             <span>{mode === 'login' ? 'تسجيل الدخول' : 'إنشاء الحساب'}</span>
           </button>
