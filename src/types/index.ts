@@ -64,6 +64,8 @@ export interface BookListing {
   favoritesCount: number;
   isFeatured?: boolean;
   status: 'pending' | 'active' | 'reserved' | 'completed' | 'flagged';
+  moderationNote?: string;
+  reviewedAt?: string;
 }
 
 export interface ExchangeRequest {

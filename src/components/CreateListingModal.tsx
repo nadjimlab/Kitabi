@@ -64,8 +64,8 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   const [hasPencilMarks, setHasPencilMarks] = useState(false);
   const [hasAnswersIncluded, setHasAnswersIncluded] = useState(true);
   const [includesCD, setIncludesCD] = useState(false);
-  const [photos, setPhotos] = useState<string[]>([PRESET_COVERS[0]]);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [wilayaCode, setWilayaCode] = useState<number>(currentUser.wilayaCode || 16);
   const [municipality, setMunicipality] = useState<string>(currentUser.municipality || 'باب الزوار');
   const [deliveryAvailable, setDeliveryAvailable] = useState(true);
@@ -96,11 +96,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotoFile(file);
-      setPhotos([URL.createObjectURL(file)]);
-    }
+    const files = (Array.from(e.target.files || []) as File[]).filter((file) => file.type.startsWith('image/')).slice(0, 10);
+    if (files.length === 0) return;
+    setPhotoFiles(files);
+    setPhotos(files.map((file) => URL.createObjectURL(file)));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,16 +111,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
     const activeGradeObj = GRADES_BY_LEVEL[level].find(g => g.code === gradeCode);
     const gradeName = activeGradeObj ? activeGradeObj.nameAr : gradeCode;
 
-    let uploadedPhotos = photos;
-    if (photoFile) {
-      try {
-        const uploadedUrl = await StorageService.uploadBookImage(photoFile, `book-${Date.now()}`);
-        uploadedPhotos = [uploadedUrl];
-      } catch (error) {
-        console.error(error);
-        setIsSubmitting(false);
-        return;
-      }
+    if (photoFiles.length < 5) throw new Error('يرجى رفع 5 صور حقيقية على الأقل: الأمام، الخلف، الوسط، والجانبان.');
+    let uploadedPhotos: string[] = [];
+    for (const [index, file] of photoFiles.entries()) {
+      uploadedPhotos.push(await StorageService.uploadBookImage(file, `book-${Date.now()}-${index}`));
     }
 
     const newListing: BookListing = {
@@ -143,7 +136,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
       hasPencilMarks,
       hasAnswersIncluded,
       includesCD,
-      photos: uploadedPhotos.length > 0 ? uploadedPhotos : [PRESET_COVERS[0]],
+      photos: uploadedPhotos,
       wilayaCode,
       wilayaNameAr: currentWilaya.nameAr,
       wilayaNameFr: currentWilaya.nameFr,
@@ -250,27 +243,27 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                 
                 <div className="flex items-center gap-3">
                   <label className="relative aspect-[4/3] w-28 rounded-2xl border-2 border-dashed border-emerald-400 bg-emerald-50/50 hover:bg-emerald-50 flex flex-col items-center justify-center cursor-pointer overflow-hidden group shrink-0">
-                    <img src={photos[0]} alt="Selected" className="absolute inset-0 w-full h-full object-cover" />
+                    {photos[0] ? <img src={photos[0]} alt="Selected" className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 flex flex-col items-center justify-center text-emerald-700"><Camera className="w-6 h-6" /><span className="text-[10px] font-bold mt-1">أضف 5 صور</span></div>}
                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
                       <Camera className="w-5 h-5 mb-1" />
                       <span className="text-[10px] font-bold">تغيير الصورة</span>
                     </div>
-                    <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                    <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
                   </label>
 
                   <div className="flex-1 space-y-1">
-                    <span className="text-[11px] text-slate-500 font-medium block">أغلفة نموذجية جاهزة:</span>
+                    <span className="text-[11px] text-slate-500 font-medium block">{photos.length}/10 صور — يجب رفع 5 صور حقيقية على الأقل:</span>
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                      {PRESET_COVERS.map((preset, idx) => (
+                      {photos.map((preset, idx) => (
                         <button
                           key={idx}
                           type="button"
-                          onClick={() => setPhotos([preset])}
+                          onClick={() => { setPhotos((current) => current.filter((_, imageIndex) => imageIndex !== idx)); setPhotoFiles((current) => current.filter((_, imageIndex) => imageIndex !== idx)); }}
                           className={`w-12 h-12 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
                             photos[0] === preset ? 'border-emerald-600 scale-105 shadow-sm' : 'border-slate-200 opacity-60'
                           }`}
                         >
-                          <img src={preset} alt="" className="w-full h-full object-cover" />
+                          <img src={preset} alt={`صورة ${idx + 1}`} className="w-full h-full object-cover" />
                         </button>
                       ))}
                     </div>

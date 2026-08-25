@@ -266,14 +266,16 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                             {b.grade}
                           </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${b.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
-                            {b.status === 'active' ? 'نشط ومعروض' : 'مكتمل / تم البيع'}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${b.status === 'active' ? 'bg-emerald-100 text-emerald-800' : b.status === 'pending' ? 'bg-amber-100 text-amber-800' : b.status === 'flagged' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'}`}>
+                            {b.status === 'active' ? 'مقبول ومعروض' : b.status === 'pending' ? 'قيد المراجعة' : b.status === 'flagged' ? 'مرفوض' : 'مكتمل / تم البيع'}
                           </span>
                         </div>
                         <h4 className="font-bold text-sm text-slate-900 truncate font-serif">{b.title}</h4>
                         <div className="text-xs font-semibold text-emerald-700">
                           {b.price ? `${b.price} د.ج` : (b.dealType === 'exchange' ? 'للتبادل 🔄' : 'مجاني 🎁')}
                         </div>
+                        {b.status === 'pending' && <div className="text-[11px] text-amber-700 mt-1">إعلانك قيد مراجعة المسؤول وسيظهر بعد الموافقة.</div>}
+                        {b.status === 'flagged' && <div className="text-[11px] text-rose-700 mt-1">سبب الرفض: {b.moderationNote || 'يرجى مراجعة الصور والمعلومات وتعديل الإعلان.'}</div>}
                       </div>
                     </div>
 
