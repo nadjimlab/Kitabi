@@ -1,0 +1,6 @@
+{
+  "name": "Ktabi — كتابي",
+  "description": "منصة جزائرية لبيع وشراء وتبادل الكتب المدرسية والمراجع الدراسية - اشري • بيع • بدّل • وفّر",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
