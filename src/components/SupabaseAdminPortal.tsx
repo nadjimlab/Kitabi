@@ -5,6 +5,7 @@ import {
   RefreshCw, Search, ShieldCheck, ShieldOff, Star, Users, X, XCircle
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
+import { createNotification } from '../services/notificationsService';
 import { EDUCATION_LEVELS } from '../data/algerianData';
 
 type Section = 'overview' | 'listings' | 'users' | 'messages' | 'reports';
@@ -206,6 +207,20 @@ export const SupabaseAdminPortal: React.FC = () => {
       .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: userData.user.id, moderation_note: note || 'يرجى مراجعة الإعلان.' })
       .eq('id', listingId);
     if (updateError) { setError(updateError.message); return; }
+    try {
+      await createNotification({
+        recipient_id: reviewListing?.seller_id || '',
+        actor_id: userData.user.id,
+        listing_id: listingId,
+        type: 'listing_status',
+        title: status === 'active' ? 'تم قبول إعلانك' : 'تم رفض إعلانك',
+        message: status === 'active'
+          ? 'تمت مراجعة كتابك والموافقة عليه، وأصبح ظاهرًا في السوق.'
+          : `تم رفض إعلانك. السبب: ${note || 'يرجى مراجعة معلومات الكتاب.'}`,
+      });
+    } catch (notificationError) {
+      console.warn('Moderation notification failed', notificationError);
+    }
     setReviewListing(null);
     await loadDashboard(userData.user.id);
     if (listingsLoaded) await loadListings();
