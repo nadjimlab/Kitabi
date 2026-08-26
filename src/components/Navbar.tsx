@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  BookOpen, 
-  Search, 
-  PlusCircle, 
-  RefreshCw, 
-  User as UserIcon, 
-  ShieldCheck, 
-  MapPin, 
-  Globe, 
-  MessageSquare, 
+import {
+  BookOpen,
+  Search,
+  PlusCircle,
+  RefreshCw,
+  User as UserIcon,
+  ShieldCheck,
+  MapPin,
+  Globe,
+  MessageSquare,
   SlidersHorizontal,
   Sparkles,
   Store
@@ -50,8 +50,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const selectedWilaya = WILAYAS.find(w => w.code === selectedWilayaCode);
 
-  const filteredWilayas = WILAYAS.filter(w => 
-    w.nameAr.includes(wilayaSearch) || 
+  const filteredWilayas = WILAYAS.filter(w =>
+    w.nameAr.includes(wilayaSearch) ||
     w.nameFr.toLowerCase().includes(wilayaSearch.toLowerCase()) ||
     w.code.toString().includes(wilayaSearch)
   );
@@ -59,21 +59,21 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-[#0B192C] text-white border-b border-slate-800 shadow-md">
       {/* Top micro banner */}
-      <div className="bg-emerald-700/80 text-emerald-100 text-xs py-1 px-4 text-center font-medium flex items-center justify-center gap-2">
+      <div className="bg-brand-700/80 text-brand-100 text-xs py-1 px-4 text-center font-medium flex items-center justify-center gap-2">
         <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
         <span>{lang === 'ar' ? 'منصة كتابي الجزائرية: اشري • بيع • بدّل • وفّر — 100% مجانية للعائلات والطلبة' : 'Ktabi Algérie: Achetez • Vendez • Échangez • Économisez — 100% Gratuit'}</span>
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-3">
-          
+
           {/* Logo & Brand */}
-          <div 
+          <div
             id="ktabi-brand-logo"
             onClick={() => onNavigate('home')}
             className="flex items-center gap-2.5 cursor-pointer group select-none shrink-0"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-900/30 group-hover:scale-105 transition-transform duration-200 border border-emerald-400/30">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-teal-700 flex items-center justify-center shadow-lg shadow-brand-900/30 group-hover:scale-105 transition-transform duration-200 border border-brand-400/30">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             <div className="flex flex-col">
@@ -93,8 +93,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="nav-btn-home"
               onClick={() => onNavigate('home')}
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                currentView === 'home' 
-                  ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/30' 
+                currentView === 'home'
+                  ? 'bg-brand-600/30 text-brand-400 border border-brand-500/30'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
             >
@@ -104,8 +104,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="nav-btn-marketplace"
               onClick={() => onNavigate('marketplace')}
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                currentView === 'marketplace' 
-                  ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/30' 
+                currentView === 'marketplace'
+                  ? 'bg-brand-600/30 text-brand-400 border border-brand-500/30'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
             >
@@ -115,12 +115,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="nav-btn-exchange"
               onClick={() => onNavigate('exchange')}
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${
-                currentView === 'exchange' 
-                  ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/30' 
+                currentView === 'exchange'
+                  ? 'bg-brand-600/30 text-brand-400 border border-brand-500/30'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
             >
-              <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin-slow" />
+              <RefreshCw className="w-3.5 h-3.5 text-brand-400 animate-spin-slow" />
               <span>{lang === 'ar' ? 'التبادل الذكي 🔄' : 'Échange Intelligent 🔄'}</span>
             </button>
             {isAdmin && (
@@ -141,7 +141,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Actions & Utilities */}
           <div className="flex items-center gap-2 sm:gap-3">
-            
+
             {/* Wilaya Selector Dropdown */}
             <div className="relative hidden sm:block">
               <button
@@ -150,7 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-800 text-xs sm:text-sm font-medium border border-slate-700/80 text-slate-200 transition-colors"
                 title={lang === 'ar' ? 'اختر ولايتك' : 'Choisir la wilaya'}
               >
-                <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <MapPin className="w-3.5 h-3.5 text-brand-400 shrink-0" />
                 <span className="max-w-[85px] sm:max-w-[120px] truncate">
                   {selectedWilaya ? `${selectedWilaya.code}. ${lang === 'ar' ? selectedWilaya.nameAr : selectedWilaya.nameFr}` : (lang === 'ar' ? 'كل الولايات (69)' : '69 Wilayas')}
                 </span>
@@ -164,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       placeholder={lang === 'ar' ? 'ابحث عن ولاية أو رقم...' : 'Rechercher une wilaya...'}
                       value={wilayaSearch}
                       onChange={(e) => setWilayaSearch(e.target.value)}
-                      className="w-full bg-slate-800 text-white placeholder-slate-400 text-xs px-3 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-slate-800 text-white placeholder-slate-400 text-xs px-3 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-brand-500"
                       autoFocus
                     />
                   </div>
@@ -172,7 +172,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="overflow-y-auto max-h-60 divide-y divide-slate-800 text-xs">
                     <button
                       onClick={() => { onSelectWilaya(0); setShowWilayaMenu(false); }}
-                      className={`w-full text-start px-3 py-2 hover:bg-slate-800 transition-colors flex items-center justify-between ${selectedWilayaCode === 0 ? 'text-emerald-400 font-bold bg-slate-800/50' : 'text-slate-300'}`}
+                      className={`w-full text-start px-3 py-2 hover:bg-slate-800 transition-colors flex items-center justify-between ${selectedWilayaCode === 0 ? 'text-brand-400 font-bold bg-slate-800/50' : 'text-slate-300'}`}
                     >
                       <span>{lang === 'ar' ? 'كل ولايات الجزائر (69)' : 'Toutes les wilayas (69)'}</span>
                       <span className="text-[10px] text-slate-500">DZ</span>
@@ -181,7 +181,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <button
                         key={w.code}
                         onClick={() => { onSelectWilaya(w.code); setShowWilayaMenu(false); }}
-                        className={`w-full text-start px-3 py-2 hover:bg-slate-800 transition-colors flex items-center justify-between ${selectedWilayaCode === w.code ? 'text-emerald-400 font-bold bg-slate-800/50' : 'text-slate-300'}`}
+                        className={`w-full text-start px-3 py-2 hover:bg-slate-800 transition-colors flex items-center justify-between ${selectedWilayaCode === w.code ? 'text-brand-400 font-bold bg-slate-800/50' : 'text-slate-300'}`}
                       >
                         <span>{w.code}. {lang === 'ar' ? w.nameAr : w.nameFr}</span>
                         <span className="text-[10px] text-slate-500 font-mono">{w.nameFr}</span>
@@ -207,10 +207,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="navbar-add-book-cta"
               onClick={onOpenCreateListing}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs sm:text-sm px-2.5 sm:px-3.5 py-2 rounded-xl shadow-md shadow-emerald-950/40 hover:shadow-emerald-700/30 transition-all transform active:scale-95 shrink-0"
+              className="flex items-center gap-1.5 bg-gradient-to-r from-brand-500 to-teal-600 hover:from-brand-400 hover:to-teal-500 text-white font-bold text-xs sm:text-sm px-2.5 sm:px-3.5 py-2 rounded-xl shadow-md shadow-brand-950/40 hover:shadow-brand-700/30 transition-all transform active:scale-95 shrink-0"
               aria-label={lang === 'ar' ? 'أضف كتابك' : 'Publier'}
             >
-              <PlusCircle className="w-4 h-4 text-emerald-100" />
+              <PlusCircle className="w-4 h-4 text-brand-100" />
               <span className="hidden sm:inline">{lang === 'ar' ? 'أضف كتابك' : 'Publier'}</span>
             </button>
 
@@ -224,7 +224,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="flex items-center gap-1.5 p-1 rounded-xl hover:bg-slate-800 text-slate-200 border border-slate-700/60 relative transition-colors"
                 title={lang === 'ar' ? 'حسابي وإعلاناتي' : 'Mon compte'}
               >
-                <img src={currentUser.avatar} alt={currentUser.name} className="w-8 h-8 rounded-lg object-cover border border-emerald-500/40" />
+                <img src={currentUser.avatar} alt={currentUser.name} className="w-8 h-8 rounded-lg object-cover border border-brand-500/40" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center animate-bounce">{unreadCount}</span>
                 )}
@@ -235,7 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={onOpenAuth}
                 className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 text-white border border-white/15 rounded-xl px-3 py-2 text-xs font-bold"
               >
-                <UserIcon className="w-4 h-4 text-emerald-300" />
+                <UserIcon className="w-4 h-4 text-brand-300" />
                 <span>{lang === 'ar' ? 'دخول' : 'Connexion'}</span>
               </button>
             )}

@@ -75,7 +75,7 @@ export const WILAYAS: Wilaya[] = [
 export const EDUCATION_LEVELS: { id: EducationLevel; labelAr: string; labelFr: string; desc: string; iconName: string; color: string }[] = [
   { id: 'primary', labelAr: "الابتدائي", labelFr: "Primaire", desc: "من السنة الأولى إلى الخامسة ابتدائي (1AP - 5AP)", iconName: "Backpack", color: "from-amber-500 to-orange-500" },
   { id: 'middle', labelAr: "المتوسط (BEM)", labelFr: "Moyen (BEM)", desc: "من السنة الأولى إلى الرابعة متوسط (1AM - 4AM)", iconName: "GraduationCap", color: "from-blue-600 to-indigo-600" },
-  { id: 'secondary', labelAr: "الثانوي (BAC)", labelFr: "Secondaire (BAC)", desc: "من السنة الأولى إلى الثالثة ثانوي لجميع الشعب (1AS - 3AS)", iconName: "Award", color: "from-emerald-600 to-teal-700" },
+  { id: 'secondary', labelAr: "الثانوي (BAC)", labelFr: "Secondaire (BAC)", desc: "من السنة الأولى إلى الثالثة ثانوي لجميع الشعب (1AS - 3AS)", iconName: "Award", color: "from-brand-600 to-teal-700" },
   { id: 'university', labelAr: "الجامعي والمهني", labelFr: "Universitaire", desc: "كتب وتخصصات ليسانس، ماستر، طب، وشبه طبي", iconName: "Building2", color: "from-purple-600 to-violet-700" },
   { id: 'general', labelAr: "معاجم ولغات وقراءة", labelFr: "Général & Langues", desc: "روايات، قواميس، كتب اللغات والتنمية", iconName: "BookOpen", color: "from-rose-600 to-pink-600" }
 ];

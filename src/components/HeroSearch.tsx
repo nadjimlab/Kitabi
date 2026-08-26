@@ -66,14 +66,14 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
   return (
     <div className="relative overflow-hidden bg-gradient-to-b from-[#0B192C] via-[#0e233d] to-[#122e4f] text-white pt-8 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
       {/* Subtle geometric and ambient glow backgrounds */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative z-10">
         
         {/* Tagline & Badge */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-semibold mb-4 shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-950/80 border border-brand-500/30 text-brand-300 text-xs sm:text-sm font-semibold mb-4 shadow-sm">
             <Sparkles className="w-4 h-4 text-amber-400" />
             <span>{lang === 'ar' ? 'المنصة الجزائرية الأولى لتبادل الكتب المدرسية' : '1ère bourse de livres scolaires en Algérie'}</span>
           </div>
@@ -81,11 +81,11 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight sm:leading-snug font-serif">
             {lang === 'ar' ? (
               <>
-                كتابي: <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-300 bg-clip-text text-transparent">اشري • بيع • بدّل • وفّر</span>
+                كتابي: <span className="bg-gradient-to-r from-brand-400 via-teal-300 to-amber-300 bg-clip-text text-transparent">اشري • بيع • بدّل • وفّر</span>
               </>
             ) : (
               <>
-                Ktabi: <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-300 bg-clip-text text-transparent">Achetez • Vendez • Échangez</span>
+                Ktabi: <span className="bg-gradient-to-r from-brand-400 via-teal-300 to-amber-300 bg-clip-text text-transparent">Achetez • Vendez • Échangez</span>
               </>
             )}
           </h1>
@@ -110,7 +110,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={lang === 'ar' ? 'ابحث عن كتاب، مادة (رياضيات، فيزياء...)، مستوى (3 ثانوي BAC)...' : 'Rechercher un manuel, matière, niveau (ex: 3AS BAC)...'}
-                className="w-full bg-slate-800 text-white placeholder-slate-400 text-sm sm:text-base pr-11 pl-4 py-3 sm:py-3.5 rounded-xl border border-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium"
+                className="w-full bg-slate-800 text-white placeholder-slate-400 text-sm sm:text-base pr-11 pl-4 py-3 sm:py-3.5 rounded-xl border border-slate-700 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all font-medium"
               />
             </div>
 
@@ -120,7 +120,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
                 id="hero-wilaya-select"
                 value={selectedWilayaCode}
                 onChange={(e) => onSelectWilaya(Number(e.target.value))}
-                className="w-full h-full bg-slate-800 text-white text-xs sm:text-sm px-3 py-3 sm:py-3.5 rounded-xl border border-slate-700 focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full h-full bg-slate-800 text-white text-xs sm:text-sm px-3 py-3 sm:py-3.5 rounded-xl border border-slate-700 focus:outline-none focus:border-brand-500 transition-colors"
               >
                 <option value={0}>{lang === 'ar' ? 'جميع الولايات (69)' : '69 Wilayas'}</option>
                 {WILAYAS.map(w => (
@@ -135,7 +135,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
             <button
               id="hero-search-submit-btn"
               type="submit"
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm sm:text-base px-6 py-3 sm:py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-950 active:scale-95 shrink-0"
+              className="bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm sm:text-base px-6 py-3 sm:py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-brand-950 active:scale-95 shrink-0"
             >
               <Search className="w-4 h-4" />
               <span>{lang === 'ar' ? 'بحث سريع' : 'Rechercher'}</span>
@@ -157,7 +157,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
                   setActiveLevel(tag.level);
                   onSearch(tag.q, tag.level);
                 }}
-                className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-emerald-900/40 hover:text-emerald-300 text-slate-300 border border-slate-700/60 transition-colors text-[11px] font-medium"
+                className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-brand-900/40 hover:text-brand-300 text-slate-300 border border-slate-700/60 transition-colors text-[11px] font-medium"
               >
                 {lang === 'ar' ? tag.labelAr : tag.labelFr}
               </button>
@@ -168,18 +168,18 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
           {recentSearches && recentSearches.length > 0 && onSelectRecentSearch && (
             <div className="mt-2 pt-2 border-t border-slate-800/60 flex items-center gap-1.5 flex-wrap text-xs">
               <span className="text-slate-400 font-semibold flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                <Clock className="w-3.5 h-3.5 text-brand-400" />
                 {lang === 'ar' ? 'عملياتك الأخيرة (مخزنة محلياً):' : 'Vos recherches récentes:'}
               </span>
               {recentSearches.slice(0, 4).map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onSelectRecentSearch(item)}
-                  className="px-2.5 py-0.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800/60 transition-colors text-[11px] font-semibold flex items-center gap-1"
+                  className="px-2.5 py-0.5 rounded-lg bg-brand-950/70 hover:bg-brand-900/90 text-brand-300 border border-brand-800/60 transition-colors text-[11px] font-semibold flex items-center gap-1"
                 >
                   <span>{item.query ? `"${item.query}"` : 'تصفية سابقة'}</span>
                   {item.resultCount > 0 && (
-                    <span className="text-[9px] text-emerald-400 font-mono">({item.resultCount})</span>
+                    <span className="text-[9px] text-brand-400 font-mono">({item.resultCount})</span>
                   )}
                 </button>
               ))}
@@ -209,7 +209,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
                   setActiveLevel(lvl.id);
                   onSearch('', lvl.id);
                 }}
-                className="group p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/90 border border-slate-700/60 hover:border-emerald-500/50 transition-all text-start flex flex-col justify-between relative overflow-hidden"
+                className="group p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/90 border border-slate-700/60 hover:border-brand-500/50 transition-all text-start flex flex-col justify-between relative overflow-hidden"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className={`p-2 rounded-lg bg-gradient-to-br ${lvl.color} text-white shadow-sm group-hover:scale-110 transition-transform`}>
@@ -220,7 +220,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
                   </span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-emerald-300 transition-colors">
+                  <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-brand-300 transition-colors">
                     {lang === 'ar' ? lvl.labelAr : lvl.labelFr}
                   </h3>
                   <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">

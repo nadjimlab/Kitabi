@@ -87,7 +87,7 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
 
   const getConditionText = (condition: BookCondition) => {
     switch (condition) {
-      case 'new': return { label: 'جديد تماماً (غير مستعمل)', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' };
+      case 'new': return { label: 'جديد تماماً (غير مستعمل)', color: 'text-brand-700 bg-brand-50 border-brand-200' };
       case 'like_new': return { label: 'شبه جديد (استعمال خفيف جداً بدون تشطيب)', color: 'text-blue-700 bg-blue-50 border-blue-200' };
       case 'good': return { label: 'حالة جيدة (سليم ونظيف)', color: 'text-amber-700 bg-amber-50 border-amber-200' };
       case 'acceptable': return { label: 'مقبول (مستعمل ومقروء)', color: 'text-slate-700 bg-slate-100 border-slate-200' };
@@ -108,7 +108,7 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
         {/* Sticky Header with Navigation & Actions */}
         <div className="bg-slate-900 text-white px-4 py-3 sm:px-6 flex items-center justify-between border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
               {book.grade}
             </span>
             {book.isFeatured && (
@@ -129,7 +129,7 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
             >
               <Share2 className="w-4 h-4" />
               {copiedToast && (
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-bold py-1 px-2 rounded-md shadow whitespace-nowrap">
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-brand-600 text-white text-[10px] font-bold py-1 px-2 rounded-md shadow whitespace-nowrap">
                   تم نسخ الرابط!
                 </span>
               )}
@@ -190,11 +190,11 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
                 {/* Price / Deal Type Badge */}
                 <div className="absolute bottom-3 right-3">
                   {book.dealType === 'sale' && (
-                    <div className="bg-emerald-600/95 backdrop-blur text-white px-3.5 py-1.5 rounded-xl font-black text-lg shadow-lg flex items-baseline gap-1">
+                    <div className="bg-brand-600/95 backdrop-blur text-white px-3.5 py-1.5 rounded-xl font-black text-lg shadow-lg flex items-baseline gap-1">
                       <span>{book.price}</span>
                       <span className="text-xs font-semibold">د.ج</span>
                       {book.originalPrice && (
-                        <span className="text-xs line-through text-emerald-200/80 mr-1.5 font-normal">
+                        <span className="text-xs line-through text-brand-200/80 mr-1.5 font-normal">
                           {book.originalPrice} د.ج
                         </span>
                       )}
@@ -223,7 +223,7 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
                       key={idx}
                       onClick={() => setSelectedPhotoIndex(idx)}
                       className={`w-16 h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
-                        selectedPhotoIndex === idx ? 'border-emerald-600 scale-105' : 'border-slate-200 opacity-60 hover:opacity-100'
+                        selectedPhotoIndex === idx ? 'border-brand-600 scale-105' : 'border-slate-200 opacity-60 hover:opacity-100'
                       }`}
                     >
                       <img src={p} alt="" className="w-full h-full object-cover" />
@@ -235,7 +235,7 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
               {/* Location & Delivery Info Card */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5 text-xs">
                 <div className="flex items-center gap-2 text-slate-700 font-bold">
-                  <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <MapPin className="w-4 h-4 text-brand-600 shrink-0" />
                   <span>
                     {book.municipality}، ولاية {lang === 'ar' ? book.wilayaNameAr : book.wilayaNameFr} ({book.wilayaCode})
                   </span>
@@ -249,7 +249,7 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
                         : (lang === 'ar' ? 'التسليم يداً بيد فقط في نفس المنطقة' : 'Remise en main propre uniquement')}
                     </span>
                     {book.deliveryAvailable && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-300/80">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-800 bg-brand-100/80 px-2 py-0.5 rounded-md border border-brand-300/80">
                         <span>✓ الدفع عند الاستلام (Paiement à la livraison)</span>
                       </span>
                     )}
@@ -271,7 +271,7 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
                     {book.subject}
                   </span>
                   {book.stream && (
-                    <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                    <span className="text-xs font-semibold text-brand-800 bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-200">
                       {book.stream}
                     </span>
                   )}
@@ -356,13 +356,13 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
                     <img
                       src={book.seller.avatar}
                       alt={book.seller.name}
-                      className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-500"
+                      className="w-12 h-12 rounded-xl object-cover border-2 border-brand-500"
                     />
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="font-bold text-sm text-white">{book.seller.name}</span>
                         {book.seller.isVerified && (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400" title="بائع موثوق" />
+                          <CheckCircle2 className="w-4 h-4 text-brand-400" title="بائع موثوق" />
                         )}
                         {book.seller.isBookstore && (
                           <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/40">
@@ -391,8 +391,8 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
                 {/* Protected Contact & Action Buttons */}
                 {currentUser ? (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
-                    <a id="action-whatsapp-direct" href={getWhatsAppLink()} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow transition-all active:scale-95 text-center">
-                      <MessageCircle className="w-4 h-4 text-emerald-200" /><span>واتساب</span>
+                    <a id="action-whatsapp-direct" href={getWhatsAppLink()} target="_blank" rel="noopener noreferrer" className="bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow transition-all active:scale-95 text-center">
+                      <MessageCircle className="w-4 h-4 text-brand-200" /><span>واتساب</span>
                     </a>
                     <a id="action-call-direct" href={`tel:${book.seller.phone}`} className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700 transition-all active:scale-95 text-center">
                       <Phone className="w-4 h-4 text-amber-400" /><span>اتصال</span>
@@ -409,7 +409,7 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
                   </div>
                 ) : (
                   <div className="pt-3 border-t border-slate-800">
-                    <button onClick={() => onOpenChat(book, book.seller)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow transition-all active:scale-95">
+                    <button onClick={() => onOpenChat(book, book.seller)} className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow transition-all active:scale-95">
                       <ShieldCheck className="w-4 h-4" />
                       <span>سجّل الدخول للتواصل مع صاحب الكتاب</span>
                     </button>
@@ -436,7 +436,7 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
                   <div
                     key={rel.id}
                     onClick={() => onSelectRelatedBook(rel)}
-                    className="group bg-slate-50 hover:bg-white p-2.5 rounded-2xl border border-slate-200 hover:border-emerald-500/40 shadow-sm cursor-pointer transition-all"
+                    className="group bg-slate-50 hover:bg-white p-2.5 rounded-2xl border border-slate-200 hover:border-brand-500/40 shadow-sm cursor-pointer transition-all"
                   >
                     <div className="aspect-[4/3] rounded-xl overflow-hidden bg-slate-200 mb-2">
                       <img src={rel.photos[0]} alt={rel.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />

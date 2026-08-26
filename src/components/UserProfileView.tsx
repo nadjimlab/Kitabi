@@ -105,16 +105,16 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
               <img
                 src={currentUser.avatar || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(currentUser.name || 'Kitabi')}&backgroundColor=0b192c&fontFamily=Arial`}
                 alt={currentUser.name}
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-3 border-emerald-500 shadow-xl"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-3 border-brand-500 shadow-xl"
               />
               {onUpdateAvatar && (
-                <label className="absolute -top-2 -left-2 w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center cursor-pointer shadow-lg border-2 border-[#0B192C] hover:bg-emerald-400 transition-colors" title="تغيير صورة الحساب">
+                <label className="absolute -top-2 -left-2 w-9 h-9 rounded-xl bg-brand-500 text-white flex items-center justify-center cursor-pointer shadow-lg border-2 border-[#0B192C] hover:bg-brand-400 transition-colors" title="تغيير صورة الحساب">
                   <ImagePlus className="w-4 h-4" />
                   <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpdateAvatar(file); event.currentTarget.value = ''; }} />
                 </label>
               )}
               {currentUser.isVerified && (
-                <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full border-2 border-[#0B192C]">
+                <div className="absolute -bottom-1 -right-1 bg-brand-500 text-white p-1 rounded-full border-2 border-[#0B192C]">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
               )}
@@ -133,7 +133,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
 
               <div className="flex items-center gap-3 text-xs text-slate-300 flex-wrap">
                 <span className="flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                  <MapPin className="w-3.5 h-3.5 text-brand-400" />
                   {currentUser.municipality} ({currentUser.wilayaCode})
                 </span>
                 {currentUser.reviewsCount > 0 && <span className="flex items-center gap-1 text-amber-400 font-bold">
@@ -153,7 +153,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={onOpenCreateListing}
-              className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow"
+              className="flex-1 sm:flex-none bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow"
             >
               <PlusCircle className="w-4 h-4" />
               <span>إضافة إعلان جديد</span>
@@ -188,7 +188,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           onClick={() => setActiveTab('my_listings')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${
             activeTab === 'my_listings'
-              ? 'bg-emerald-600 text-white shadow-sm'
+              ? 'bg-brand-600 text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
@@ -201,7 +201,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           onClick={() => setActiveTab('favorites')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${
             activeTab === 'favorites'
-              ? 'bg-emerald-600 text-white shadow-sm'
+              ? 'bg-brand-600 text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
@@ -214,7 +214,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           onClick={() => setActiveTab('exchanges')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${
             activeTab === 'exchanges'
-              ? 'bg-emerald-600 text-white shadow-sm'
+              ? 'bg-brand-600 text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
@@ -227,7 +227,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           onClick={() => setActiveTab('messages')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${
             activeTab === 'messages'
-              ? 'bg-emerald-600 text-white shadow-sm'
+              ? 'bg-brand-600 text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
@@ -250,7 +250,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                 <p className="text-xs text-slate-500">أضف كتبك القديمة واكسب مساحة وساعد غيرك في توفير تكاليف الدخول المدرسي.</p>
                 <button
                   onClick={onOpenCreateListing}
-                  className="bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl"
+                  className="bg-brand-600 text-white text-xs font-bold px-4 py-2 rounded-xl"
                 >
                   ➕ إضافة أول كتاب
                 </button>
@@ -266,12 +266,12 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                             {b.grade}
                           </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${b.status === 'active' ? 'bg-emerald-100 text-emerald-800' : b.status === 'pending' ? 'bg-amber-100 text-amber-800' : b.status === 'flagged' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'}`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${b.status === 'active' ? 'bg-brand-100 text-brand-800' : b.status === 'pending' ? 'bg-amber-100 text-amber-800' : b.status === 'flagged' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'}`}>
                             {b.status === 'active' ? 'مقبول ومعروض' : b.status === 'pending' ? 'قيد المراجعة' : b.status === 'flagged' ? 'مرفوض' : b.status === 'sold' ? 'مباع' : b.status === 'unavailable' ? 'غير متوفر' : b.status === 'completed' ? 'مكتمل' : 'محجوز'}
                           </span>
                         </div>
                         <h4 className="font-bold text-sm text-slate-900 truncate font-serif">{b.title}</h4>
-                        <div className="text-xs font-semibold text-emerald-700">
+                        <div className="text-xs font-semibold text-brand-700">
                           {b.price ? `${b.price} د.ج` : (b.dealType === 'exchange' ? 'للتبادل 🔄' : 'مجاني 🎁')}
                         </div>
                         {b.status === 'pending' && <div className="text-[11px] text-amber-700 mt-1">إعلانك قيد مراجعة المسؤول وسيظهر بعد الموافقة.</div>}
@@ -296,7 +296,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                           </button>
                         </> : <button
                           onClick={() => handleMarkStatus(b.id, 'active')}
-                          className="text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 bg-emerald-50 px-2.5 py-1.5 rounded-lg"
+                          className="text-[11px] font-bold text-brand-700 hover:bg-brand-100 bg-brand-50 px-2.5 py-1.5 rounded-lg"
                         >
                           إعادة عرض الكتاب
                         </button>}
@@ -355,7 +355,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                   <div className="space-y-1 flex-1">
                     <div className="flex items-center gap-2">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        req.status === 'accepted' ? 'bg-emerald-100 text-emerald-800' :
+                        req.status === 'accepted' ? 'bg-brand-100 text-brand-800' :
                         req.status === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-blue-100 text-blue-800'
                       }`}>
                         {req.status === 'accepted' ? 'تمت الموافقة ✓' : req.status === 'rejected' ? 'مرفوض' : 'في الانتظار 🔄'}
@@ -364,7 +364,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                     </div>
 
                     <div className="text-sm font-bold text-slate-900 font-serif pt-1">
-                      طلب تبادل: <span className="text-emerald-700">{req.offeredBookTitle}</span> 🔄 مقابل <span className="text-blue-700">{req.targetBookTitle}</span>
+                      طلب تبادل: <span className="text-brand-700">{req.offeredBookTitle}</span> 🔄 مقابل <span className="text-blue-700">{req.targetBookTitle}</span>
                     </div>
 
                     <p className="text-xs text-slate-600 italic bg-slate-50 p-2 rounded-xl">
@@ -384,7 +384,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => handleUpdateExchangeStatus(req.id, 'accepted')}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow"
+                        className="bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow"
                       >
                         قبول التبادل
                       </button>
@@ -416,7 +416,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                 <div
                   key={c.id}
                   onClick={() => onOpenChatWithUser(c.participant)}
-                  className="bg-white p-4 rounded-2xl border border-slate-200 hover:border-emerald-500 shadow-sm cursor-pointer transition-all flex items-center justify-between gap-3"
+                  className="bg-white p-4 rounded-2xl border border-slate-200 hover:border-brand-500 shadow-sm cursor-pointer transition-all flex items-center justify-between gap-3"
                 >
                   <div className="flex items-center gap-3">
                     <img src={c.participant.avatar} alt="" className="w-12 h-12 rounded-xl object-cover border border-slate-200" />
@@ -424,7 +424,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                       <h4 className="font-bold text-sm text-slate-900">{c.participant.name}</h4>
                       <p className="text-xs text-slate-600 line-clamp-1">{c.lastMessage}</p>
                       {c.listingTitle && (
-                        <span className="text-[10px] text-emerald-800 font-semibold bg-emerald-50 px-2 py-0.5 rounded mt-1 inline-block">
+                        <span className="text-[10px] text-brand-800 font-semibold bg-brand-50 px-2 py-0.5 rounded mt-1 inline-block">
                           حول كتاب: {c.listingTitle}
                         </span>
                       )}
@@ -433,7 +433,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                   <div className="text-end text-[11px] text-slate-400">
                     <div>{c.lastMessageTime}</div>
                     {c.unreadCount > 0 && (
-                      <span className="inline-block mt-1 w-5 h-5 rounded-full bg-emerald-600 text-white font-bold text-[10px] text-center leading-5">
+                      <span className="inline-block mt-1 w-5 h-5 rounded-full bg-brand-600 text-white font-bold text-[10px] text-center leading-5">
                         {c.unreadCount}
                       </span>
                     )}

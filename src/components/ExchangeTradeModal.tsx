@@ -92,7 +92,7 @@ export const ExchangeTradeModal: React.FC<ExchangeTradeModalProps> = ({
 
         {isSuccess ? (
           <div className="p-8 text-center space-y-3">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto animate-bounce">
+            <div className="w-16 h-16 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center mx-auto animate-bounce">
               <Check className="w-8 h-8" />
             </div>
             <h3 className="text-lg font-black text-slate-900 font-serif">تم إرسال طلب التبادل بنجاح! 🔄</h3>
@@ -140,7 +140,7 @@ export const ExchangeTradeModal: React.FC<ExchangeTradeModalProps> = ({
                       key={l.id}
                       className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
                         selectedListingId === l.id
-                          ? 'bg-emerald-50 border-emerald-600 ring-2 ring-emerald-500/20'
+                          ? 'bg-brand-50 border-brand-600 ring-2 ring-brand-500/20'
                           : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
@@ -149,7 +149,7 @@ export const ExchangeTradeModal: React.FC<ExchangeTradeModalProps> = ({
                         name="offeredBook"
                         checked={selectedListingId === l.id}
                         onChange={() => setSelectedListingId(l.id)}
-                        className="text-emerald-600 focus:ring-emerald-500"
+                        className="text-brand-600 focus:ring-brand-500"
                       />
                       <img src={l.photos[0]} alt="" className="w-9 h-11 rounded-lg object-cover" />
                       <div className="flex-1 min-w-0">
@@ -161,7 +161,7 @@ export const ExchangeTradeModal: React.FC<ExchangeTradeModalProps> = ({
                   <label
                     className={`flex items-center gap-2 p-2 rounded-xl border cursor-pointer text-xs ${
                       selectedListingId === 'custom'
-                        ? 'bg-emerald-50 border-emerald-600'
+                        ? 'bg-brand-50 border-brand-600'
                         : 'bg-slate-50 border-slate-200'
                     }`}
                   >
@@ -170,7 +170,7 @@ export const ExchangeTradeModal: React.FC<ExchangeTradeModalProps> = ({
                       name="offeredBook"
                       checked={selectedListingId === 'custom'}
                       onChange={() => setSelectedListingId('custom')}
-                      className="text-emerald-600"
+                      className="text-brand-600"
                     />
                     <span>كتاب آخر (كتابة العنوان يدوياً)</span>
                   </label>
@@ -183,7 +183,7 @@ export const ExchangeTradeModal: React.FC<ExchangeTradeModalProps> = ({
                     value={customTitle}
                     onChange={(e) => setCustomTitle(e.target.value)}
                     placeholder="اكتب عنوان الكتاب والمستوى الذي تعرضه للمبادلة..."
-                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 font-medium"
+                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500 font-medium"
                   />
                 </div>
               )}

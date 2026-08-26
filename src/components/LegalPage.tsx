@@ -11,16 +11,16 @@ export const LegalPage: React.FC<LegalPageProps> = ({ type, onBack, lang }) => {
   const isPrivacy = type === 'privacy';
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-      <button onClick={onBack} className="inline-flex items-center gap-2 text-emerald-700 hover:text-emerald-900 text-xs font-bold mb-6">
+      <button onClick={onBack} className="inline-flex items-center gap-2 text-brand-700 hover:text-brand-900 text-xs font-bold mb-6">
         <ArrowLeft className="w-4 h-4 rtl:rotate-0 ltr:rotate-180" /> العودة إلى المنصة
       </button>
       <article className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 space-y-7 text-slate-700 leading-relaxed">
         <header className="flex items-start gap-4 border-b border-slate-100 pb-6">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-700 flex items-center justify-center shrink-0">
             {isPrivacy ? <ShieldCheck className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
           </div>
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-emerald-700 font-black">كِتابي • Kitabi</p>
+            <p className="text-[11px] uppercase tracking-widest text-brand-700 font-black">كِتابي • Kitabi</p>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 font-serif mt-1">{isPrivacy ? 'سياسة الخصوصية' : 'شروط الاستخدام'}</h1>
             <p className="text-xs text-slate-500 mt-2">آخر تحديث: أغسطس 2026</p>
           </div>
@@ -42,7 +42,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ type, onBack, lang }) => {
           </>
         )}
 
-        <footer className="pt-4 border-t border-slate-100 text-xs text-slate-500 flex items-center gap-2"><BookOpen className="w-4 h-4 text-emerald-600" /> منصة كتب مجتمعية للعائلات والطلبة في الجزائر.</footer>
+        <footer className="pt-4 border-t border-slate-100 text-xs text-slate-500 flex items-center gap-2"><BookOpen className="w-4 h-4 text-brand-600" /> منصة كتب مجتمعية للعائلات والطلبة في الجزائر.</footer>
       </article>
     </div>
   );

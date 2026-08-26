@@ -180,7 +180,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
         {/* Header */}
         <div className="bg-[#0B192C] text-white px-5 py-4 flex items-center justify-between border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-brand-500/20 text-brand-400 border border-brand-500/30 flex items-center justify-center">
               <BookOpen className="w-4 h-4" />
             </div>
             <div>
@@ -205,25 +205,25 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
         <div className="bg-slate-100 px-6 py-2 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-500 shrink-0">
           <button 
             onClick={() => setStep(1)} 
-            className={`flex items-center gap-1.5 ${step === 1 ? 'text-emerald-700 font-extrabold' : ''}`}
+            className={`flex items-center gap-1.5 ${step === 1 ? 'text-brand-700 font-extrabold' : ''}`}
           >
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 1 ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'}`}>1</span>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 1 ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-700'}`}>1</span>
             <span>{lang === 'ar' ? 'الصور والمستوى' : 'Photos & Niveau'}</span>
           </button>
           <div className="w-8 h-0.5 bg-slate-300" />
           <button 
             onClick={() => setStep(2)} 
-            className={`flex items-center gap-1.5 ${step === 2 ? 'text-emerald-700 font-extrabold' : ''}`}
+            className={`flex items-center gap-1.5 ${step === 2 ? 'text-brand-700 font-extrabold' : ''}`}
           >
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 2 ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'}`}>2</span>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 2 ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-700'}`}>2</span>
             <span>{lang === 'ar' ? 'الحالة والسعر/التبادل' : 'État & Prix/Échange'}</span>
           </button>
           <div className="w-8 h-0.5 bg-slate-300" />
           <button 
             onClick={() => setStep(3)} 
-            className={`flex items-center gap-1.5 ${step === 3 ? 'text-emerald-700 font-extrabold' : ''}`}
+            className={`flex items-center gap-1.5 ${step === 3 ? 'text-brand-700 font-extrabold' : ''}`}
           >
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 3 ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'}`}>3</span>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 3 ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-700'}`}>3</span>
             <span>{lang === 'ar' ? 'الموقع والنشر' : 'Localisation & Publier'}</span>
           </button>
         </div>
@@ -243,8 +243,8 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                 </label>
                 
                 <div className="flex items-center gap-3">
-                  <label className="relative aspect-[4/3] w-28 rounded-2xl border-2 border-dashed border-emerald-400 bg-emerald-50/50 hover:bg-emerald-50 flex flex-col items-center justify-center cursor-pointer overflow-hidden group shrink-0">
-                    {photos[0] ? <img src={photos[0]} alt="Selected" className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 flex flex-col items-center justify-center text-emerald-700"><Camera className="w-6 h-6" /><span className="text-[10px] font-bold mt-1">أضف 5 صور</span></div>}
+                  <label className="relative aspect-[4/3] w-28 rounded-2xl border-2 border-dashed border-brand-400 bg-brand-50/50 hover:bg-brand-50 flex flex-col items-center justify-center cursor-pointer overflow-hidden group shrink-0">
+                    {photos[0] ? <img src={photos[0]} alt="Selected" className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 flex flex-col items-center justify-center text-brand-700"><Camera className="w-6 h-6" /><span className="text-[10px] font-bold mt-1">أضف 5 صور</span></div>}
                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
                       <Camera className="w-5 h-5 mb-1" />
                       <span className="text-[10px] font-bold">إضافة صور</span>
@@ -261,7 +261,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                           type="button"
                           onClick={() => { setPhotos((current) => current.filter((_, imageIndex) => imageIndex !== idx)); setPhotoFiles((current) => current.filter((_, imageIndex) => imageIndex !== idx)); }}
                           className={`w-12 h-12 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
-                            photos[0] === preset ? 'border-emerald-600 scale-105 shadow-sm' : 'border-slate-200 opacity-60'
+                            photos[0] === preset ? 'border-brand-600 scale-105 shadow-sm' : 'border-slate-200 opacity-60'
                           }`}
                         >
                           <img src={preset} alt={`صورة ${idx + 1}`} className="w-full h-full object-cover" />
@@ -283,7 +283,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={lang === 'ar' ? 'مثال: الميسر في الرياضيات 3 ثانوي - مع الحلول' : 'Ex: Mathématiques 3AS Terminale'}
-                  className="w-full bg-slate-50 text-slate-900 text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all font-medium"
+                  className="w-full bg-slate-50 text-slate-900 text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500 focus:bg-white transition-all font-medium"
                 />
               </div>
 
@@ -300,7 +300,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                       onClick={() => handleLevelChange(lvl.id)}
                       className={`p-2 rounded-xl text-xs font-bold border transition-all text-center ${
                         level === lvl.id
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                          ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
@@ -319,7 +319,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                   <select
                     value={gradeCode}
                     onChange={(e) => setGradeCode(e.target.value)}
-                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
                   >
                     {GRADES_BY_LEVEL[level].map((g) => (
                       <option key={g.code} value={g.code}>
@@ -336,7 +336,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                   <select
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
                   >
                     {SUBJECTS_BY_LEVEL[level].map((s, idx) => (
                       <option key={idx} value={s}>{s}</option>
@@ -354,7 +354,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                   <select
                     value={stream}
                     onChange={(e) => setStream(e.target.value)}
-                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
                   >
                     {STREAMS.map((st, idx) => (
                       <option key={idx} value={st}>{st}</option>
@@ -367,7 +367,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl flex items-center gap-1.5 shadow"
+                  className="bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl flex items-center gap-1.5 shadow"
                 >
                   <span>التالي: الحالة والسعر</span>
                   <ArrowLeft className="w-4 h-4 rtl:rotate-0 ltr:rotate-180" />
@@ -399,7 +399,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                       onClick={() => setCondition(c.id as BookCondition)}
                       className={`p-2.5 rounded-xl border text-start transition-all ${
                         condition === c.id
-                          ? 'bg-emerald-50 text-emerald-900 border-emerald-600 ring-2 ring-emerald-500/20 font-bold'
+                          ? 'bg-brand-50 text-brand-900 border-brand-600 ring-2 ring-brand-500/20 font-bold'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
@@ -419,7 +419,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                       type="checkbox"
                       checked={hasAnswersIncluded}
                       onChange={(e) => setHasAnswersIncluded(e.target.checked)}
-                      className="rounded text-emerald-600 focus:ring-emerald-500"
+                      className="rounded text-brand-600 focus:ring-brand-500"
                     />
                     <span>يتضمن حلول التمارين</span>
                   </label>
@@ -428,7 +428,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                       type="checkbox"
                       checked={hasPencilMarks}
                       onChange={(e) => setHasPencilMarks(e.target.checked)}
-                      className="rounded text-emerald-600 focus:ring-emerald-500"
+                      className="rounded text-brand-600 focus:ring-brand-500"
                     />
                     <span>توجد كتابات بالقلم</span>
                   </label>
@@ -437,7 +437,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                       type="checkbox"
                       checked={includesCD}
                       onChange={(e) => setIncludesCD(e.target.checked)}
-                      className="rounded text-emerald-600 focus:ring-emerald-500"
+                      className="rounded text-brand-600 focus:ring-brand-500"
                     />
                     <span>مع القرص المدمج CD</span>
                   </label>
@@ -455,11 +455,11 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                     onClick={() => setDealType('sale')}
                     className={`p-3 rounded-2xl border flex flex-col items-center justify-center text-center transition-all ${
                       dealType === 'sale'
-                        ? 'bg-emerald-50 text-emerald-950 border-emerald-600 ring-2 ring-emerald-500/20 font-black'
+                        ? 'bg-brand-50 text-brand-950 border-brand-600 ring-2 ring-brand-500/20 font-black'
                         : 'bg-slate-50 text-slate-700 border-slate-200'
                     }`}
                   >
-                    <DollarSign className="w-5 h-5 text-emerald-600 mb-1" />
+                    <DollarSign className="w-5 h-5 text-brand-600 mb-1" />
                     <span className="text-xs">{lang === 'ar' ? 'للبيع (د.ج)' : 'À Vendre'}</span>
                   </button>
 
@@ -493,7 +493,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
 
               {/* Dynamic inputs based on Deal Type */}
               {dealType === 'sale' && (
-                <div className="grid grid-cols-2 gap-3 bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-200/80">
+                <div className="grid grid-cols-2 gap-3 bg-brand-50/50 p-3.5 rounded-2xl border border-brand-200/80">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       {lang === 'ar' ? 'سعر البيع (دينار جزائري د.ج)' : 'Prix de vente (DZD)'} *
@@ -504,7 +504,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                       step={50}
                       value={price}
                       onChange={(e) => setPrice(Number(e.target.value))}
-                      className="w-full bg-white text-slate-900 font-bold text-sm px-3.5 py-2.5 rounded-xl border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className="w-full bg-white text-slate-900 font-bold text-sm px-3.5 py-2.5 rounded-xl border border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                     />
                   </div>
                   <div>
@@ -569,7 +569,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setStep(3)}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl flex items-center gap-1.5 shadow"
+                  className="bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl flex items-center gap-1.5 shadow"
                 >
                   <span>التالي: الموقع والتواصل</span>
                   <ArrowLeft className="w-4 h-4 rtl:rotate-0 ltr:rotate-180" />
@@ -592,7 +592,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                   <select
                     value={wilayaCode}
                     onChange={(e) => handleWilayaChange(Number(e.target.value))}
-                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
                   >
                     {WILAYAS.map(w => (
                       <option key={w.code} value={w.code}>
@@ -609,7 +609,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                   <select
                     value={municipality}
                     onChange={(e) => setMunicipality(e.target.value)}
-                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
                   >
                     {currentWilaya.municipalities.map((m, idx) => (
                       <option key={idx} value={m}>{m}</option>
@@ -622,19 +622,19 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
                 <span className="text-xs font-bold text-slate-700 block">طريقة التسليم والشحن:</span>
                 <div className="space-y-2 text-xs">
-                  <label className="flex items-start gap-2 cursor-pointer p-2 rounded-xl bg-white border border-slate-200 hover:border-emerald-500/50 transition-colors">
+                  <label className="flex items-start gap-2 cursor-pointer p-2 rounded-xl bg-white border border-slate-200 hover:border-brand-500/50 transition-colors">
                     <input
                       type="radio"
                       name="delivery"
                       checked={deliveryAvailable}
                       onChange={() => setDeliveryAvailable(true)}
-                      className="text-emerald-600 focus:ring-emerald-500 mt-0.5"
+                      className="text-brand-600 focus:ring-brand-500 mt-0.5"
                     />
                     <div>
                       <span className="font-bold text-slate-800 block">
                         متوفر التوصيل والشحن (الدفع عند الاستلام)
                       </span>
-                      <span className="text-[11px] text-emerald-700 block mt-0.5">
+                      <span className="text-[11px] text-brand-700 block mt-0.5">
                         ✓ إمكانية الشحن عبر شركات التوصيل لـ 69 ولاية مع تحصيل المبلغ يداً بيد (الدفع عند الاستلام)
                       </span>
                     </div>
@@ -645,7 +645,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                       name="delivery"
                       checked={!deliveryAvailable}
                       onChange={() => setDeliveryAvailable(false)}
-                      className="text-emerald-600 focus:ring-emerald-500 mt-0.5"
+                      className="text-brand-600 focus:ring-brand-500 mt-0.5"
                     />
                     <div>
                       <span className="font-bold text-slate-800 block">
@@ -670,17 +670,17 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="0550123456"
-                  className="w-full bg-slate-50 text-slate-900 text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 font-mono"
+                  className="w-full bg-slate-50 text-slate-900 text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500 font-mono"
                 />
               </div>
 
               {/* Summary Card */}
-              <div className="bg-emerald-950 text-white p-4 rounded-2xl border border-emerald-700/50 space-y-1 text-xs">
-                <div className="font-bold text-emerald-300 text-sm font-serif">{title || `كتاب ${subject}`}</div>
+              <div className="bg-brand-950 text-white p-4 rounded-2xl border border-brand-700/50 space-y-1 text-xs">
+                <div className="font-bold text-brand-300 text-sm font-serif">{title || `كتاب ${subject}`}</div>
                 <div className="text-slate-300">
                   {currentWilaya.nameAr} ({municipality}) • {dealType === 'sale' ? `${price} د.ج` : (dealType === 'exchange' ? 'للتبادل 🔄' : 'صدقة مجانية 🎁')}
                 </div>
-                <div className="text-[11px] text-emerald-400/90 pt-1">
+                <div className="text-[11px] text-brand-400/90 pt-1">
                   ✓ النشر مجاني 100% وبدون أي عمولة على العائلات والطلبة
                 </div>
               </div>
@@ -697,7 +697,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                   id="submit-create-listing-btn"
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm px-6 py-3 rounded-2xl flex items-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-95 transition-all"
+                  className="bg-gradient-to-r from-brand-600 to-teal-600 hover:from-brand-500 hover:to-teal-500 text-white font-black text-sm px-6 py-3 rounded-2xl flex items-center gap-2 shadow-lg shadow-brand-950/40 active:scale-95 transition-all"
                 >
                   {isSubmitting ? (
                     <span>جاري النشر...</span>

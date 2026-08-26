@@ -69,7 +69,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 
         {isSent ? (
           <div className="p-8 text-center space-y-3">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center mx-auto">
               <Check className="w-7 h-7" />
             </div>
             <h4 className="font-bold text-slate-900 text-base">شكراً لحرصك على أمان المنصة!</h4>

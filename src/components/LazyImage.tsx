@@ -95,7 +95,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full animate-[shimmer_1.8s_infinite]" />
           
           <div className="relative z-10 flex flex-col items-center justify-center p-3 text-center">
-            <div className="w-10 h-10 rounded-2xl bg-white/80 border border-slate-200/80 shadow-xs flex items-center justify-center text-emerald-600/70 mb-1.5 backdrop-blur-xs">
+            <div className="w-10 h-10 rounded-2xl bg-white/80 border border-slate-200/80 shadow-xs flex items-center justify-center text-brand-600/70 mb-1.5 backdrop-blur-xs">
               <BookOpen className="w-5 h-5 animate-pulse" />
             </div>
             {fallbackSubject && (
@@ -134,8 +134,8 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
       {/* 3. Fallback Error State for Low/Unstable Network */}
       {hasError && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-emerald-950/90 via-slate-900 to-teal-950 p-4 text-white text-center">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 mb-2">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-brand-950/90 via-slate-900 to-teal-950 p-4 text-white text-center">
+          <div className="w-9 h-9 rounded-xl bg-brand-500/20 border border-brand-400/30 flex items-center justify-center text-brand-300 mb-2">
             <BookOpen className="w-5 h-5" />
           </div>
           
@@ -145,14 +145,14 @@ export const LazyImage: React.FC<LazyImageProps> = ({
             </p>
           )}
 
-          <div className="flex items-center gap-1 text-[10px] text-emerald-300/80 mb-2">
+          <div className="flex items-center gap-1 text-[10px] text-brand-300/80 mb-2">
             <WifiOff className="w-3 h-3" />
             <span>ضعف الاتصال</span>
           </div>
 
           <button
             onClick={handleRetry}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold shadow-md transition-transform active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-[10px] font-bold shadow-md transition-transform active:scale-95 cursor-pointer"
             title="إعادة تحميل الصورة"
           >
             <RefreshCw className="w-3 h-3" />

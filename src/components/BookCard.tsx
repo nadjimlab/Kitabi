@@ -38,7 +38,7 @@ export const BookCard: React.FC<BookCardProps> = ({
       case 'new':
         return {
           label: lang === 'ar' ? 'جديد كلياً' : 'Neuf',
-          bg: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30'
+          bg: 'bg-brand-500/10 text-brand-700 border-brand-500/30'
         };
       case 'like_new':
         return {
@@ -63,7 +63,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   return (
     <div 
       id={`book-card-${book.id}`}
-      className="group bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-emerald-500/40 transition-all duration-300 flex flex-col overflow-hidden relative"
+      className="group bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-brand-500/40 transition-all duration-300 flex flex-col overflow-hidden relative"
     >
       {/* Featured ribbon if applicable */}
       {book.isFeatured && (
@@ -110,7 +110,7 @@ export const BookCard: React.FC<BookCardProps> = ({
         {/* Deal Type Badge Overlay */}
         <div className="absolute bottom-2.5 right-2.5 z-20">
           {book.dealType === 'sale' && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600/95 backdrop-blur text-white text-xs font-black shadow-md">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-600/95 backdrop-blur text-white text-xs font-black shadow-md">
               <span>{book.price}</span>
               <span className="text-[10px] font-medium">د.ج</span>
             </span>
@@ -154,7 +154,7 @@ export const BookCard: React.FC<BookCardProps> = ({
           {/* Title */}
           <h3 
             onClick={() => onSelectBook(book)}
-            className="text-sm font-bold text-slate-900 line-clamp-2 hover:text-emerald-700 cursor-pointer transition-colors leading-snug mb-2 font-serif"
+            className="text-sm font-bold text-slate-900 line-clamp-2 hover:text-brand-700 cursor-pointer transition-colors leading-snug mb-2 font-serif"
             title={book.title}
           >
             {book.title}
@@ -163,7 +163,7 @@ export const BookCard: React.FC<BookCardProps> = ({
           {/* Tags row: Stream & Shipping */}
           <div className="flex items-center gap-1.5 flex-wrap mb-2">
             {book.stream && (
-              <span className="text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-medium border border-emerald-200/60 truncate max-w-full">
+              <span className="text-[10px] text-brand-800 bg-brand-50 px-2 py-0.5 rounded font-medium border border-brand-200/60 truncate max-w-full">
                 {book.stream}
               </span>
             )}
@@ -190,7 +190,7 @@ export const BookCard: React.FC<BookCardProps> = ({
           <div className="flex items-center justify-between text-xs text-slate-500">
             {/* Wilaya & Municipality */}
             <div className="flex items-center gap-1 text-slate-600 truncate">
-              <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <MapPin className="w-3.5 h-3.5 text-brand-600 shrink-0" />
               <span className="truncate font-medium text-[11px]">
                 {book.municipality}، {lang === 'ar' ? book.wilayaNameAr : book.wilayaNameFr} ({book.wilayaCode})
               </span>
@@ -214,14 +214,14 @@ export const BookCard: React.FC<BookCardProps> = ({
                 {book.seller.name.split(' ')[0]}
               </span>
               {book.seller.isVerified && (
-                <CheckCircle2 className="w-3 h-3 text-emerald-500" title="بائع موثوق" />
+                <CheckCircle2 className="w-3 h-3 text-brand-500" title="بائع موثوق" />
               )}
             </div>
 
             <button
               id={`book-card-details-btn-${book.id}`}
               onClick={() => onSelectBook(book)}
-              className="text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
+              className="text-xs font-bold text-brand-700 hover:text-brand-800 hover:bg-brand-50 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
             >
               <span>{lang === 'ar' ? 'التفاصيل' : 'Détails'}</span>
               <Eye className="w-3.5 h-3.5" />

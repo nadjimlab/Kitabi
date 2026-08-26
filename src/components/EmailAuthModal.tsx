@@ -69,7 +69,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose,
       <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
         <div className="bg-[#0B192C] text-white px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-brand-500/20 text-brand-300 flex items-center justify-center">
               {mode === 'login' ? <LockKeyhole className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
             </div>
             <div>
@@ -89,23 +89,23 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose,
           {mode === 'register' && (
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">الاسم</label>
-              <input type="text" required value={name} onChange={(event) => setName(event.target.value)} placeholder="اسمك الكامل" className="w-full bg-slate-50 text-slate-900 text-sm px-3.5 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500" />
+              <input type="text" required value={name} onChange={(event) => setName(event.target.value)} placeholder="اسمك الكامل" className="w-full bg-slate-50 text-slate-900 text-sm px-3.5 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500" />
             </div>
           )}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">البريد الإلكتروني</label>
-            <div className="relative"><Mail className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" /><input type="email" required dir="ltr" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="w-full bg-slate-50 text-slate-900 text-sm pl-10 pr-3.5 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500" /></div>
+            <div className="relative"><Mail className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" /><input type="email" required dir="ltr" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="w-full bg-slate-50 text-slate-900 text-sm pl-10 pr-3.5 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500" /></div>
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">كلمة المرور</label>
-            <div className="relative"><LockKeyhole className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" /><input type="password" required minLength={6} dir="ltr" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="6 أحرف على الأقل" className="w-full bg-slate-50 text-slate-900 text-sm pl-10 pr-3.5 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500" /></div>
+            <div className="relative"><LockKeyhole className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" /><input type="password" required minLength={6} dir="ltr" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="6 أحرف على الأقل" className="w-full bg-slate-50 text-slate-900 text-sm pl-10 pr-3.5 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500" /></div>
           </div>
-          <button type="submit" disabled={isSubmitting || !supabase} className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black text-sm px-4 py-3 rounded-xl flex items-center justify-center gap-2">
+          <button type="submit" disabled={isSubmitting || !supabase} className="w-full bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white font-black text-sm px-4 py-3 rounded-xl flex items-center justify-center gap-2">
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : mode === 'login' ? <CheckCircle2 className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
             <span>{mode === 'login' ? 'تسجيل الدخول' : 'إنشاء الحساب'}</span>
           </button>
           {error && <p className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-3 text-xs font-medium">{error}</p>}
-          <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }} className="w-full text-slate-600 hover:text-emerald-700 text-xs font-bold">
+          <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }} className="w-full text-slate-600 hover:text-brand-700 text-xs font-bold">
             {mode === 'login' ? 'ليس لديك حساب؟ أنشئ حسابًا جديدًا' : 'لديك حساب بالفعل؟ سجّل الدخول'}
           </button>
         </form>

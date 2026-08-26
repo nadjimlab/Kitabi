@@ -52,11 +52,11 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
       
       {/* Header Banner */}
       <div className="bg-gradient-to-br from-[#0B192C] via-[#11253e] to-[#153457] text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold mb-3 border border-emerald-500/30">
-            <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin-slow" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/20 text-brand-300 text-xs font-bold mb-3 border border-brand-500/30">
+            <RefreshCw className="w-3.5 h-3.5 text-brand-400 animate-spin-slow" />
             <span>{lang === 'ar' ? 'محرك التبادل الذكي للكتب المدرسية' : 'Bourse d\'échange intelligente'}</span>
           </div>
 
@@ -115,9 +115,9 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
           </div>
 
           {/* Right: What you WANT (ماذا تحتاج؟) */}
-          <div className="bg-emerald-50/50 p-4 sm:p-5 rounded-2xl border border-emerald-200/80 space-y-3">
-            <div className="flex items-center gap-2 text-emerald-950 font-black text-sm">
-              <span className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs">2</span>
+          <div className="bg-brand-50/50 p-4 sm:p-5 rounded-2xl border border-brand-200/80 space-y-3">
+            <div className="flex items-center gap-2 text-brand-950 font-black text-sm">
+              <span className="w-6 h-6 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs">2</span>
               <span>{lang === 'ar' ? 'ماذا تحتاج؟ (الكتاب المطلوب)' : 'Que cherchez-vous?'}</span>
             </div>
 
@@ -130,7 +130,7 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
                   setWantLevel(lvl);
                   setWantSubject(SUBJECTS_BY_LEVEL[lvl][0]);
                 }}
-                className="w-full bg-white text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-emerald-300 focus:outline-none font-semibold"
+                className="w-full bg-white text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-brand-300 focus:outline-none font-semibold"
               >
                 {EDUCATION_LEVELS.map(lvl => (
                   <option key={lvl.id} value={lvl.id}>{lvl.labelAr}</option>
@@ -143,7 +143,7 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
               <select
                 value={wantSubject}
                 onChange={(e) => setWantSubject(e.target.value)}
-                className="w-full bg-white text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-emerald-300 focus:outline-none"
+                className="w-full bg-white text-slate-900 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-brand-300 focus:outline-none"
               >
                 {SUBJECTS_BY_LEVEL[wantLevel].map((s, i) => (
                   <option key={i} value={s}>{s}</option>
@@ -157,7 +157,7 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
         {/* Wilaya Filter inside Matcher */}
         <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 text-slate-600 font-semibold w-full sm:w-auto">
-            <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+            <MapPin className="w-4 h-4 text-brand-600 shrink-0" />
             <span>نطاق المطابقة الجغرافي:</span>
             <select
               value={selectedWilayaCode}
@@ -171,7 +171,7 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
             </select>
           </div>
 
-          <div className="text-emerald-700 font-bold text-xs flex items-center gap-1.5">
+          <div className="text-brand-700 font-bold text-xs flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
             <span>{matches.length} تطابق مباشر متاح للتبادل الآن</span>
           </div>
@@ -185,7 +185,7 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-slate-900 font-serif flex items-center gap-2">
             <span>النتائج المتطابقة مع طلبك</span>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-100 text-brand-800">
               {matches.length}
             </span>
           </h2>
@@ -206,7 +206,7 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
             {matches.map(({ listing, matchScore, reasons }) => (
               <div
                 key={listing.id}
-                className="bg-white rounded-3xl p-4 sm:p-5 border-2 border-emerald-100 hover:border-emerald-500 shadow-sm hover:shadow-lg transition-all flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between"
+                className="bg-white rounded-3xl p-4 sm:p-5 border-2 border-brand-100 hover:border-brand-500 shadow-sm hover:shadow-lg transition-all flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between"
               >
                 
                 <div className="flex items-start sm:items-center gap-4 flex-1">
@@ -222,7 +222,7 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
                       fallbackSubject={listing.subject}
                       aspectRatioClass="h-full w-full"
                     />
-                    <div className="absolute top-1 right-1 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md z-20">
+                    <div className="absolute top-1 right-1 bg-brand-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md z-20">
                       {matchScore}% تطابق
                     </div>
                   </div>
@@ -230,7 +230,7 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
                   {/* Info */}
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-50 text-brand-800 border border-brand-200">
                         {listing.grade}
                       </span>
                       <span className="text-[10px] text-slate-500 font-semibold">
@@ -243,7 +243,7 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
 
                     <h3 
                       onClick={() => onSelectBook(listing)}
-                      className="font-bold text-sm sm:text-base text-slate-900 hover:text-emerald-700 cursor-pointer font-serif line-clamp-1"
+                      className="font-bold text-sm sm:text-base text-slate-900 hover:text-brand-700 cursor-pointer font-serif line-clamp-1"
                     >
                       {listing.title}
                     </h3>
@@ -251,8 +251,8 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
                     {/* Match Reasons */}
                     <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                       {reasons.map((r, i) => (
-                        <span key={i} className="text-[10px] bg-emerald-100/70 text-emerald-900 font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span key={i} className="text-[10px] bg-brand-100/70 text-brand-900 font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-brand-600" />
                           <span>{r}</span>
                         </span>
                       ))}
@@ -282,7 +282,7 @@ export const ExchangeMatcher: React.FC<ExchangeMatcherProps> = ({
                   <button
                     id={`propose-match-swap-${listing.id}`}
                     onClick={() => onOpenTradeModal(listing)}
-                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black shadow-md shadow-emerald-950/30 flex items-center justify-center gap-1.5 transition-transform active:scale-95"
+                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-teal-600 hover:from-brand-500 hover:to-teal-500 text-white text-xs font-black shadow-md shadow-brand-950/30 flex items-center justify-center gap-1.5 transition-transform active:scale-95"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>طلب تبادل فوري 🔄</span>

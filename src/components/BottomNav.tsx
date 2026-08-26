@@ -26,7 +26,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           onClick={() => onNavigate('home')}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all ${
             currentView === 'home'
-              ? 'text-emerald-400 font-bold scale-105'
+              ? 'text-brand-400 font-bold scale-105'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -42,7 +42,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           onClick={() => onNavigate('marketplace')}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all ${
             currentView === 'marketplace'
-              ? 'text-emerald-400 font-bold scale-105'
+              ? 'text-brand-400 font-bold scale-105'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -58,10 +58,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           onClick={onOpenCreateListing}
           className="flex flex-col items-center justify-center -mt-5 group"
         >
-          <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-emerald-950/60 group-active:scale-90 transition-transform border-4 border-[#0B192C]">
+          <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-brand-600 via-brand-500 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-brand-950/60 group-active:scale-90 transition-transform border-4 border-[#0B192C]">
             <PlusCircle className="w-7 h-7" />
           </div>
-          <span className="text-[10px] font-bold text-emerald-400 mt-0.5">
+          <span className="text-[10px] font-bold text-brand-400 mt-0.5">
             {lang === 'ar' ? 'نشر كتاب' : 'Publier'}
           </span>
         </button>
@@ -72,7 +72,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           onClick={() => onNavigate('exchange')}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all ${
             currentView === 'exchange'
-              ? 'text-emerald-400 font-bold scale-105'
+              ? 'text-brand-400 font-bold scale-105'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -88,7 +88,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           onClick={() => onNavigate('profile')}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl relative transition-all ${
             currentView === 'profile'
-              ? 'text-emerald-400 font-bold scale-105'
+              ? 'text-brand-400 font-bold scale-105'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >

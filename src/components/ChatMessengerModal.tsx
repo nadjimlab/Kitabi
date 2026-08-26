@@ -92,17 +92,17 @@ export const ChatMessengerModal: React.FC<ChatMessengerModalProps> = ({
               <img
                 src={targetUser.avatar}
                 alt={targetUser.name}
-                className="w-10 h-10 rounded-full object-cover border-2 border-emerald-500"
+                className="w-10 h-10 rounded-full object-cover border-2 border-brand-500"
               />
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[#0B192C]"></span>
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-brand-500 ring-2 ring-[#0B192C]"></span>
             </div>
             <div>
               <div className="font-bold text-sm text-white flex items-center gap-1.5">
                 <span>{targetUser.name}</span>
-                {targetUser.isVerified && <span className="text-[10px] text-emerald-400">✓ موثوق</span>}
+                {targetUser.isVerified && <span className="text-[10px] text-brand-400">✓ موثوق</span>}
               </div>
               <div className="text-[11px] text-slate-400 flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-emerald-400" />
+                <MapPin className="w-3 h-3 text-brand-400" />
                 <span>{targetUser.municipality}</span>
               </div>
             </div>
@@ -118,19 +118,19 @@ export const ChatMessengerModal: React.FC<ChatMessengerModalProps> = ({
 
         {/* Listing preview banner if chat is about a book */}
         {targetBook && (
-          <div className="bg-emerald-50/70 px-4 py-2 border-b border-emerald-100 flex items-center justify-between text-xs shrink-0">
+          <div className="bg-brand-50/70 px-4 py-2 border-b border-brand-100 flex items-center justify-between text-xs shrink-0">
             <div className="flex items-center gap-2 truncate">
               <img src={targetBook.photos[0]} alt="" className="w-7 h-9 rounded object-cover shrink-0" />
               <div className="truncate">
                 <span className="font-bold text-slate-900 block truncate">{targetBook.title}</span>
-                <span className="text-[10px] text-emerald-800 font-semibold">
+                <span className="text-[10px] text-brand-800 font-semibold">
                   {targetBook.price ? `${targetBook.price} د.ج` : (targetBook.dealType === 'exchange' ? 'للتبادل 🔄' : 'مجاني 🎁')}
                 </span>
               </div>
             </div>
             <a
               href={`tel:${targetUser.phone}`}
-              className="px-2 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px] flex items-center gap-1 shrink-0 ml-2"
+              className="px-2 py-1 rounded-lg bg-brand-600 text-white font-bold text-[10px] flex items-center gap-1 shrink-0 ml-2"
             >
               <Phone className="w-3 h-3" />
               <span>اتصال</span>
@@ -150,12 +150,12 @@ export const ChatMessengerModal: React.FC<ChatMessengerModalProps> = ({
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs sm:text-sm shadow-sm ${
                     isMe
-                      ? 'bg-emerald-600 text-white rounded-tr-none'
+                      ? 'bg-brand-600 text-white rounded-tr-none'
                       : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
                   }`}
                 >
                   <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                  <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${isMe ? 'text-emerald-200' : 'text-slate-400'}`}>
+                  <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${isMe ? 'text-brand-200' : 'text-slate-400'}`}>
                     <span>{msg.timestamp}</span>
                     {isMe && <CheckCheck className="w-3 h-3" />}
                   </div>
@@ -173,7 +173,7 @@ export const ChatMessengerModal: React.FC<ChatMessengerModalProps> = ({
               key={idx}
               type="button"
               onClick={() => handleSend(qr)}
-              className="text-[11px] font-semibold bg-white hover:bg-emerald-50 hover:text-emerald-800 text-slate-700 px-2.5 py-1 rounded-full border border-slate-200 shadow-2xs whitespace-nowrap transition-colors"
+              className="text-[11px] font-semibold bg-white hover:bg-brand-50 hover:text-brand-800 text-slate-700 px-2.5 py-1 rounded-full border border-slate-200 shadow-2xs whitespace-nowrap transition-colors"
             >
               {qr}
             </button>
@@ -193,12 +193,12 @@ export const ChatMessengerModal: React.FC<ChatMessengerModalProps> = ({
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder={lang === 'ar' ? 'اكتب رسالتك للبائع...' : 'Votre message...'}
-            className="flex-1 bg-slate-100 text-slate-900 text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:bg-white focus:border-emerald-500"
+            className="flex-1 bg-slate-100 text-slate-900 text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:bg-white focus:border-brand-500"
           />
           <button
             type="submit"
             disabled={!inputText.trim()}
-            className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white p-2.5 rounded-xl shadow transition-all active:scale-95 shrink-0"
+            className="bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white p-2.5 rounded-xl shadow transition-all active:scale-95 shrink-0"
           >
             <Send className="w-4 h-4 rtl:rotate-180" />
           </button>

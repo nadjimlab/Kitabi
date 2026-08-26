@@ -37,7 +37,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
         {/* Header */}
         <div className="bg-[#0B192C] text-white p-4 flex items-center justify-between border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-5 h-5 text-emerald-400" />
+            <SlidersHorizontal className="w-5 h-5 text-brand-400" />
             <h3 className="font-bold text-sm font-serif">
               {lang === 'ar' ? 'تصفية وبحث متقدم في الكتب' : 'Filtres de recherche'}
             </h3>
@@ -78,7 +78,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
                   onClick={() => onFilterChange({ dealType: t.id as any })}
                   className={`py-2 px-1 rounded-xl font-bold border transition-all text-center ${
                     filters.dealType === t.id
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
@@ -95,7 +95,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
               <button
                 onClick={() => onFilterChange({ level: 'all', gradeCode: '', stream: '', subject: '' })}
                 className={`p-2 rounded-xl font-bold border text-start ${
-                  filters.level === 'all' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-700 border-slate-200'
+                  filters.level === 'all' ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-700 border-slate-200'
                 }`}
               >
                 جميع الأطوار والمستويات
@@ -105,7 +105,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
                   key={lvl.id}
                   onClick={() => onFilterChange({ level: lvl.id, gradeCode: '', stream: '', subject: '' })}
                   className={`p-2 rounded-xl font-bold border text-start ${
-                    filters.level === lvl.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-700 border-slate-200'
+                    filters.level === lvl.id ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-700 border-slate-200'
                   }`}
                 >
                   {lvl.labelAr}
@@ -190,7 +190,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
                   key={c.id}
                   onClick={() => onFilterChange({ condition: c.id as any })}
                   className={`p-2 rounded-xl border font-bold text-center ${
-                    filters.condition === c.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-700 border-slate-200'
+                    filters.condition === c.id ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-700 border-slate-200'
                   }`}
                 >
                   {c.label}
@@ -203,7 +203,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
           <div>
             <div className="flex items-center justify-between font-bold text-slate-700 mb-1">
               <span>الحد الأقصى للسعر:</span>
-              <span className="text-emerald-700 font-mono font-black">{filters.maxPrice} د.ج</span>
+              <span className="text-brand-700 font-mono font-black">{filters.maxPrice} د.ج</span>
             </div>
             <input
               type="range"
@@ -212,7 +212,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
               step={50}
               value={filters.maxPrice}
               onChange={(e) => onFilterChange({ maxPrice: Number(e.target.value) })}
-              className="w-full accent-emerald-600 cursor-pointer"
+              className="w-full accent-brand-600 cursor-pointer"
             />
           </div>
 
@@ -223,7 +223,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
                 type="checkbox"
                 checked={filters.onlyFree}
                 onChange={(e) => onFilterChange({ onlyFree: e.target.checked })}
-                className="rounded text-emerald-600 focus:ring-emerald-500"
+                className="rounded text-brand-600 focus:ring-brand-500"
               />
               <span>عرض الكتب المهداة مجاناً فقط (صدقة 🎁)</span>
             </label>
@@ -233,7 +233,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
                 type="checkbox"
                 checked={filters.deliveryOnly}
                 onChange={(e) => onFilterChange({ deliveryOnly: e.target.checked })}
-                className="rounded text-emerald-600 focus:ring-emerald-500"
+                className="rounded text-brand-600 focus:ring-brand-500"
               />
               <span>إعلانات توفر الشحن والتوصيل (الدفع عند الاستلام)</span>
             </label>
@@ -248,7 +248,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition-all active:scale-95"
+            className="bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition-all active:scale-95"
           >
             تطبيق النتائج ({totalResultsCount})
           </button>

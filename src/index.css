@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+@theme {
+  /* Kitabi brand — deep editorial navy, replaces the old generic emerald identity */
+  --color-brand-50: #eef4fb;
+  --color-brand-100: #dbe7f6;
+  --color-brand-200: #b6cfec;
+  --color-brand-300: #86aedd;
+  --color-brand-400: #5488c9;
+  --color-brand-500: #3569ae;
+  --color-brand-600: #26518f;
+  --color-brand-700: #204174;
+  --color-brand-800: #1c355f;
+  --color-brand-900: #182c4d;
+  --color-brand-950: #0b192c;
+
+  --font-sans: 'Cairo', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  /* Editorial display face for headings/logo — gives Kitabi a literary, "bookish" identity
+     instead of falling back to the browser's generic unstyled serif. */
+  --font-serif: 'Amiri', 'Cairo', 'Plus Jakarta Sans', serif;
+}
+
 :root {
   color-scheme: light;
   font-synthesis: none;
@@ -15,7 +35,7 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  background: #f8fafc;
+  background: #f7f7f5;
   color: #0f172a;
   font-family: 'Cairo', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
@@ -39,12 +59,12 @@ button:not(:disabled):active {
 }
 
 :focus-visible {
-  outline: 3px solid rgba(16, 185, 129, 0.5);
+  outline: 3px solid rgba(38, 81, 143, 0.5);
   outline-offset: 3px;
 }
 
 ::selection {
-  background: #10b981;
+  background: #26518f;
   color: #ffffff;
 }
 
