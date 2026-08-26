@@ -27,15 +27,6 @@ interface CreateListingModalProps {
   lang: 'ar' | 'fr';
 }
 
-const PRESET_COVERS = [
-  "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=600&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&auto=format&fit=crop&q=80"
-];
-
 export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   isOpen,
   onClose,
@@ -96,7 +87,12 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = (Array.from(e.target.files || []) as File[]).filter((file) => file.type.startsWith('image/')).slice(0, 10);
+    const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    const selectedFiles = Array.from(e.target.files || []) as File[];
+    const files = selectedFiles.filter((file) => allowedTypes.has(file.type) && file.size <= 5 * 1024 * 1024).slice(0, 10);
+    if (selectedFiles.some((file) => !allowedTypes.has(file.type) || file.size > 5 * 1024 * 1024)) {
+      setSubmitError('يسمح فقط بصور JPG أو PNG أو WebP بحجم أقصى 5 ميغابايت للصورة.');
+    }
     if (files.length === 0) return;
     const mergedFiles = [...photoFiles, ...files.filter((file) => !photoFiles.some((existing) => existing.name === file.name && existing.size === file.size))].slice(0, 10);
     setPhotoFiles(mergedFiles);

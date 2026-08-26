@@ -43,7 +43,6 @@ import { ExchangeTradeModal } from './components/ExchangeTradeModal';
 import { ChatMessengerModal } from './components/ChatMessengerModal';
 import { ReportModal } from './components/ReportModal';
 import { UserProfileView } from './components/UserProfileView';
-import { AdminDashboard } from './components/AdminDashboard';
 import { SupabaseAdminPortal } from './components/SupabaseAdminPortal';
 import { FilterDrawer } from './components/FilterDrawer';
 import { RecentSearchesBar } from './components/RecentSearchesBar';
@@ -309,8 +308,10 @@ export default function App() {
   const handleUpdateAvatar = async (file: File) => {
     if (!currentUser) return;
     if (file.size > 5 * 1024 * 1024) { window.alert('حجم الصورة يجب ألا يتجاوز 5 ميغابايت.'); return; }
-    const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const path = `avatars/${currentUser.id}/${Date.now()}.${extension}`;
+    const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    if (!allowedTypes.has(file.type)) { window.alert('يسمح فقط بصور JPG أو PNG أو WebP.'); return; }
+    const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = `${currentUser.id}/avatar-${Date.now()}.${extension}`;
     const { error: uploadError } = await supabase.storage.from('book-images').upload(path, file, { upsert: true, contentType: file.type });
     if (uploadError) { window.alert(`تعذر رفع الصورة: ${uploadError.message}`); return; }
     const { data: publicData } = supabase.storage.from('book-images').getPublicUrl(path);

@@ -188,10 +188,34 @@ export class StorageService {
     return listing;
   }
 
+  private static mapSupabaseUser(row: Record<string, unknown>): User {
+    const email = String(row.email || '');
+    const name = String(row.name || 'مستخدم كتابي');
+    return {
+      id: String(row.id || ''),
+      name,
+      email,
+      phone: String(row.phone || ''),
+      whatsapp: row.whatsapp ? String(row.whatsapp) : undefined,
+      avatar: String(row.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0b192c&color=fff`),
+      wilayaCode: Number(row.wilaya_code || 16),
+      municipality: String(row.municipality || ''),
+      rating: Number(row.rating || 0),
+      reviewsCount: Number(row.reviews_count || 0),
+      isVerified: Boolean(row.is_verified),
+      isBookstore: Boolean(row.is_bookstore),
+      bookstoreName: row.bookstore_name ? String(row.bookstore_name) : undefined,
+      joinedDate: String(row.joined_date || ''),
+      bio: row.bio ? String(row.bio) : undefined,
+      role: row.role === 'admin' ? 'admin' : 'user',
+    };
+  }
+
   static async getAllUsers(): Promise<User[]> {
-    if (!firestoreReady() || !db || !this.currentUid) return [];
-    const snapshot = await getDocs(collection(db, 'users'));
-    return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as User);
+    if (!isSupabaseConfigured) return [];
+    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map((row) => this.mapSupabaseUser(row as Record<string, unknown>));
   }
 
   static getAllDemoUsers(): User[] {
@@ -234,9 +258,11 @@ export class StorageService {
   }
 
   static async getListingById(id: string): Promise<BookListing | undefined> {
-    if (!firestoreReady() || !db) return this.listingsSnapshot.find((listing) => listing.id === id);
-    const snapshot = await getDoc(doc(db, 'listings', id));
-    return snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as BookListing) : undefined;
+    if (!isSupabaseConfigured) return undefined;
+    const { data: row, error } = await supabase.from('listings').select('*').eq('id', id).maybeSingle();
+    if (error || !row) return undefined;
+    const { data: seller } = await supabase.from('profiles').select('*').eq('id', row.seller_id).maybeSingle();
+    return this.mapSupabaseListing({ ...(row as Record<string, unknown>), seller: seller || {} });
   }
 
   static async saveListing(listing: BookListing): Promise<BookListing> {
@@ -285,6 +311,11 @@ export class StorageService {
   }
 
   static async incrementView(id: string) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.rpc('increment_listing_views', { p_listing_id: id });
+      if (error) console.warn('Supabase view increment failed', error);
+      return;
+    }
     if (!firestoreReady() || !db) return;
     await updateDoc(doc(db, 'listings', id), { views: increment(1) });
   }
@@ -292,9 +323,11 @@ export class StorageService {
   static async uploadBookImage(file: File, listingId: string): Promise<string> {
     const ownerId = this.currentUser?.id || this.currentUid;
     if (isSupabaseConfigured && ownerId) {
-      if (!file.type.startsWith('image/')) throw new Error('يسمح برفع الصور فقط.');
+      const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+      if (!allowedTypes.has(file.type)) throw new Error('يسمح فقط بصور JPG أو PNG أو WebP.');
       if (file.size > 5 * 1024 * 1024) throw new Error('حجم الصورة الأقصى هو 5 ميغابايت.');
-      const path = `${ownerId}/${listingId}-${crypto.randomUUID()}.${file.name.split('.').pop() || 'jpg'}`;
+      const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+      const path = `${ownerId}/${listingId}-${crypto.randomUUID()}.${extension}`;
       const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
       if (error) throw error;
       const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
@@ -310,6 +343,20 @@ export class StorageService {
   }
 
   static async deleteBookImage(url: string) {
+    if (isSupabaseConfigured) {
+      try {
+        const marker = `/storage/v1/object/public/${SUPABASE_BUCKET}/`;
+        const markerIndex = url.indexOf(marker);
+        if (markerIndex >= 0) {
+          const path = decodeURIComponent(url.slice(markerIndex + marker.length));
+          const { error } = await supabase.storage.from(SUPABASE_BUCKET).remove([path]);
+          if (error) console.warn('Supabase image delete skipped', error);
+        }
+      } catch (error) {
+        console.warn('Supabase image delete skipped', error);
+      }
+      return;
+    }
     if (!firebaseReady() || !storage) return;
     try {
       await deleteObject(ref(storage, url));
@@ -319,28 +366,24 @@ export class StorageService {
   }
 
   static async getFavorites(): Promise<string[]> {
-    if (!firestoreReady() || !db || !this.currentUid) return [];
-    const snapshot = await getDocs(collection(db, 'users', this.currentUid, 'favorites'));
-    return snapshot.docs.map((item) => item.id);
+    if (!isSupabaseConfigured || !this.currentUid) return [];
+    const { data, error } = await supabase.from('favorites').select('listing_id').eq('user_id', this.currentUid);
+    if (error) throw error;
+    return (data || []).map((row) => String(row.listing_id));
   }
 
   static async toggleFavorite(listingId: string): Promise<boolean> {
-    if (!firestoreReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لحفظ المفضلة.');
-    const favoriteRef = doc(db, 'users', this.currentUid, 'favorites', listingId);
-    const listingRef = doc(db, 'listings', listingId);
-    let isNowFavorite = false;
-    await runTransaction(db, async (transaction) => {
-      const favorite = await transaction.get(favoriteRef);
-      isNowFavorite = !favorite.exists();
-      if (favorite.exists()) {
-        transaction.delete(favoriteRef);
-        transaction.update(listingRef, { favoritesCount: increment(-1) });
-      } else {
-        transaction.set(favoriteRef, { listingId, createdAt: formatNow() });
-        transaction.update(listingRef, { favoritesCount: increment(1) });
-      }
-    });
-    return isNowFavorite;
+    if (!isSupabaseConfigured || !this.currentUid) throw new Error('يجب تسجيل الدخول لحفظ المفضلة.');
+    const { data: existing, error: readError } = await supabase.from('favorites').select('listing_id').eq('user_id', this.currentUid).eq('listing_id', listingId).maybeSingle();
+    if (readError) throw readError;
+    if (existing) {
+      const { error } = await supabase.from('favorites').delete().eq('user_id', this.currentUid).eq('listing_id', listingId);
+      if (error) throw error;
+      return false;
+    }
+    const { error } = await supabase.from('favorites').insert({ user_id: this.currentUid, listing_id: listingId });
+    if (error) throw error;
+    return true;
   }
 
   static async getExchangeRequests(): Promise<ExchangeRequest[]> {

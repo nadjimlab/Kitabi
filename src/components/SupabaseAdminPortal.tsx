@@ -267,11 +267,24 @@ export const SupabaseAdminPortal: React.FC = () => {
     setReportsLoading(true);
     const { data: rows, error: fetchError } = await supabase
       .from('reports')
-      .select('id,reason,details,status,created_at,listing_id,reporter_id,listing:listings(title),reporter:profiles(name,email)')
+      .select('id,reason,details,status,created_at,listing_id,reporter_id')
       .order('created_at', { ascending: false })
       .limit(150);
-    if (fetchError) setError(fetchError.message);
-    setReports((rows || []) as unknown as AdminReportRow[]);
+    if (fetchError) {
+      setError(fetchError.message);
+      setReportsLoading(false); setReportsLoaded(true);
+      return;
+    }
+    const reportRows = (rows || []) as Array<AdminReportRow>;
+    const listingIds = [...new Set(reportRows.map((row) => row.listing_id).filter(Boolean))];
+    const reporterIds = [...new Set(reportRows.map((row) => row.reporter_id).filter(Boolean))];
+    const [{ data: listingRows }, { data: reporterRows }] = await Promise.all([
+      listingIds.length ? supabase.from('listings').select('id,title').in('id', listingIds) : Promise.resolve({ data: [] }),
+      reporterIds.length ? supabase.from('profiles').select('id,name,email').in('id', reporterIds) : Promise.resolve({ data: [] }),
+    ]);
+    const titles = new Map((listingRows || []).map((row) => [String(row.id), { title: row.title }]));
+    const reporters = new Map((reporterRows || []).map((row) => [String(row.id), { name: row.name, email: row.email }]));
+    setReports(reportRows.map((row) => ({ ...row, listing: titles.get(row.listing_id) || null, reporter: reporters.get(row.reporter_id) || null })));
     setReportsLoading(false); setReportsLoaded(true);
   };
 
@@ -287,11 +300,19 @@ export const SupabaseAdminPortal: React.FC = () => {
     setChatsLoading(true);
     const { data: rows, error: fetchError } = await supabase
       .from('chats')
-      .select('id,listing_id,last_message,last_message_time,participant_ids,listing:listings(title)')
+      .select('id,listing_id,last_message,last_message_time,participant_ids')
       .order('last_message_time', { ascending: false })
       .limit(60);
-    if (fetchError) setError(fetchError.message);
-    setChats((rows || []) as unknown as AdminChatRow[]);
+    if (fetchError) {
+      setError(fetchError.message);
+      setChatsLoading(false); setChatsLoaded(true);
+      return;
+    }
+    const chatRows = (rows || []) as Array<AdminChatRow>;
+    const listingIds = [...new Set(chatRows.map((row) => row.listing_id).filter(Boolean))] as string[];
+    const { data: listingRows } = listingIds.length ? await supabase.from('listings').select('id,title').in('id', listingIds) : { data: [] };
+    const titles = new Map((listingRows || []).map((row) => [String(row.id), { title: row.title }]));
+    setChats(chatRows.map((row) => ({ ...row, listing: row.listing_id ? titles.get(row.listing_id) || null : null })));
     setChatsLoading(false); setChatsLoaded(true);
   };
 
