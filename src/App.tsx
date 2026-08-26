@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   BookOpen, 
   Search, 
@@ -200,16 +200,20 @@ export default function App() {
     }
   }, [authLoading, currentUser, pendingView]);
 
-  // Load public listings and private user data from Firestore
+  // Load data only after the Supabase session has settled. This prevents an anonymous
+  // request from racing the authenticated request and hiding the owner's pending listings.
+  const listingsRequestRef = useRef(0);
   useEffect(() => {
+    if (authLoading) return;
     let cancelled = false;
+    const requestId = ++listingsRequestRef.current;
     const loadData = async () => {
       const [remoteListings, remoteFavorites, remoteChats] = await Promise.all([
         StorageService.getListings(),
         currentUser ? StorageService.getFavorites() : Promise.resolve([]),
         currentUser ? StorageService.getChats() : Promise.resolve([]),
       ]);
-      if (!cancelled) {
+      if (!cancelled && requestId === listingsRequestRef.current) {
         // The marketplace must reflect real Supabase listings only; an empty database stays empty.
         setListings(remoteListings);
         setFavorites(remoteFavorites);
@@ -219,7 +223,7 @@ export default function App() {
     };
     void loadData();
     return () => { cancelled = true; };
-  }, [currentUser]);
+  }, [authLoading, currentUser]);
 
   // Restore last marketplace filters on first mount
   useEffect(() => {
