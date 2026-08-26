@@ -130,9 +130,63 @@ export class StorageService {
   }
 
   static async updateUserProfile(user: User) {
+    if (isSupabaseConfigured) {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user || authData.user.id !== user.id) throw new Error('لا تملك صلاحية تعديل هذا الملف الشخصي.');
+      const { error } = await supabase.from('profiles').update({
+        name: user.name,
+        phone: user.phone || null,
+        whatsapp: user.whatsapp || null,
+        municipality: user.municipality || null,
+        bio: user.bio || null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', authData.user.id);
+      if (error) throw error;
+      this.currentUser = user;
+      return;
+    }
     if (!firestoreReady() || !db || !this.currentUid) return;
     await setDoc(doc(db, 'users', this.currentUid), asRecord(user), { merge: true });
     this.currentUser = user;
+  }
+
+  static async updateListing(listing: BookListing): Promise<BookListing> {
+    const { data: authData } = isSupabaseConfigured ? await supabase.auth.getUser() : { data: { user: null } };
+    const sellerId = authData.user?.id || this.currentUser?.id || this.currentUid;
+    if (isSupabaseConfigured && sellerId) {
+      const nextStatus = listing.status === 'active' ? 'pending' : listing.status;
+      const row = {
+        title: listing.title,
+        author: listing.author || null,
+        publisher: listing.publisher || null,
+        publication_year: listing.year || null,
+        level: listing.level,
+        grade: listing.grade,
+        grade_code: listing.gradeCode,
+        stream: listing.stream || null,
+        subject: listing.subject,
+        condition: listing.condition,
+        deal_type: listing.dealType,
+        price: listing.price,
+        original_price: listing.originalPrice || null,
+        exchange_for: listing.exchangeFor || null,
+        description: listing.description,
+        updated_at: new Date().toISOString(),
+        status: nextStatus,
+        reviewed_at: null,
+        reviewed_by: null,
+        moderation_note: listing.status === 'active' ? 'تم تعديل الإعلان ويحتاج إلى مراجعة جديدة.' : listing.moderationNote || null,
+      };
+      const { error } = await supabase.from('listings').update(row).eq('id', listing.id).eq('seller_id', sellerId);
+      if (error) throw error;
+      const updated = { ...listing, status: nextStatus, moderationNote: row.moderation_note || undefined };
+      this.listingsSnapshot = this.listingsSnapshot.map((item) => item.id === listing.id ? updated : item);
+      return updated;
+    }
+    if (!firestoreReady() || !db || !sellerId) throw new Error('يجب تسجيل الدخول قبل تعديل الإعلان.');
+    await updateDoc(doc(db, 'listings', listing.id), { ...asRecord(listing), updatedAt: formatNow() });
+    this.listingsSnapshot = this.listingsSnapshot.map((item) => item.id === listing.id ? listing : item);
+    return listing;
   }
 
   static async getAllUsers(): Promise<User[]> {

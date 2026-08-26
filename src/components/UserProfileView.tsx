@@ -18,7 +18,10 @@ import {
   Building2,
   SlidersHorizontal,
   ExternalLink,
-  ImagePlus
+  ImagePlus,
+  Pencil,
+  Save,
+  X
 } from 'lucide-react';
 import { User, BookListing, ExchangeRequest, ChatConversation } from '../types';
 import { StorageService } from '../services/storageService';
@@ -58,6 +61,11 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   const [activeTab, setActiveTab] = useState<'my_listings' | 'favorites' | 'exchanges' | 'messages'>('my_listings');
   const [exchangeRequests, setExchangeRequests] = useState<ExchangeRequest[]>([]);
   const [chats, setChats] = useState<ChatConversation[]>([]);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: currentUser.name, phone: currentUser.phone || '', whatsapp: currentUser.whatsapp || '', municipality: currentUser.municipality || '', bio: currentUser.bio || '' });
+  const [editingListing, setEditingListing] = useState<BookListing | null>(null);
+  const [listingForm, setListingForm] = useState({ title: '', price: '', condition: 'good' as BookListing['condition'], description: '', dealType: 'sale' as BookListing['dealType'] });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +98,42 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   const handleUpdateExchangeStatus = async (reqId: string, status: 'accepted' | 'rejected' | 'completed') => {
     await StorageService.updateExchangeRequestStatus(reqId, status);
     window.location.reload();
+  };
+
+  const openProfileEditor = () => {
+    setProfileForm({ name: currentUser.name, phone: currentUser.phone || '', whatsapp: currentUser.whatsapp || '', municipality: currentUser.municipality || '', bio: currentUser.bio || '' });
+    setEditingProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!profileForm.name.trim()) { window.alert('يرجى كتابة الاسم.'); return; }
+    setSavingEdit(true);
+    try {
+      const updatedUser = { ...currentUser, name: profileForm.name.trim(), phone: profileForm.phone.trim(), whatsapp: profileForm.whatsapp.trim() || undefined, municipality: profileForm.municipality.trim(), bio: profileForm.bio.trim() || undefined };
+      await StorageService.updateUserProfile(updatedUser);
+      onSwitchUser(updatedUser);
+      setEditingProfile(false);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'تعذر حفظ معلومات الملف الشخصي.');
+    } finally { setSavingEdit(false); }
+  };
+
+  const openListingEditor = (listing: BookListing) => {
+    setEditingListing(listing);
+    setListingForm({ title: listing.title, price: String(listing.price || 0), condition: listing.condition, description: listing.description, dealType: listing.dealType });
+  };
+
+  const handleSaveListing = async () => {
+    if (!editingListing || !listingForm.title.trim() || !listingForm.description.trim()) { window.alert('يرجى إكمال عنوان الإعلان والوصف.'); return; }
+    setSavingEdit(true);
+    try {
+      const updatedListing: BookListing = { ...editingListing, title: listingForm.title.trim(), price: Number(listingForm.price) || 0, condition: listingForm.condition, description: listingForm.description.trim(), dealType: listingForm.dealType };
+      await StorageService.updateListing(updatedListing);
+      setEditingListing(null);
+      window.location.reload();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'تعذر تحديث الإعلان.');
+    } finally { setSavingEdit(false); }
   };
 
   return (
@@ -147,6 +191,9 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                 {currentUser.phone && <><span className="font-mono">{currentUser.phone}</span><span>•</span></>}
                 <span>{currentUser.email}</span>
               </div>
+              <button onClick={openProfileEditor} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-xs font-bold text-slate-100 hover:bg-slate-700">
+                <Pencil className="w-3.5 h-3.5" /> تعديل معلوماتي
+              </button>
             </div>
           </div>
 
@@ -301,6 +348,12 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                           إعادة عرض الكتاب
                         </button>}
                         <button
+                          onClick={() => openListingEditor(b)}
+                          className="text-[11px] font-bold text-slate-700 hover:bg-slate-200 bg-slate-100 px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                        >
+                          <Pencil className="w-3.5 h-3.5" /> تعديل
+                        </button>
+                        <button
                           onClick={() => handleDeleteListing(b.id)}
                           className="text-[11px] font-bold text-rose-700 hover:bg-rose-100 bg-rose-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1"
                         >
@@ -445,6 +498,84 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
         )}
 
 
+        {editingProfile && (
+          <div className="fixed inset-0 z-[80] bg-slate-950/60 backdrop-blur-sm p-4 flex items-center justify-center" dir="rtl">
+            <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl border border-slate-200 p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-3 mb-5">
+                <div>
+                  <h2 className="text-lg font-black text-slate-900">تعديل معلوماتي</h2>
+                  <p className="text-xs text-slate-500 mt-1">حدّث المعلومات التي تظهر في ملفك للمتعاملين معك.</p>
+                </div>
+                <button onClick={() => setEditingProfile(false)} className="rounded-xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200" aria-label="إغلاق"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="space-y-4">
+                <label className="block text-sm font-bold text-slate-700">الاسم
+                  <input value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="block text-sm font-bold text-slate-700">الهاتف
+                    <input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} dir="ltr" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                  </label>
+                  <label className="block text-sm font-bold text-slate-700">واتساب
+                    <input value={profileForm.whatsapp} onChange={(e) => setProfileForm({ ...profileForm, whatsapp: e.target.value })} dir="ltr" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                  </label>
+                </div>
+                <label className="block text-sm font-bold text-slate-700">البلدية
+                  <input value={profileForm.municipality} onChange={(e) => setProfileForm({ ...profileForm, municipality: e.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                </label>
+                <label className="block text-sm font-bold text-slate-700">نبذة عنك
+                  <textarea value={profileForm.bio} onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })} rows={4} className="mt-1.5 w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                </label>
+              </div>
+              <div className="mt-6 flex gap-2">
+                <button onClick={() => setEditingProfile(false)} className="flex-1 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">إلغاء</button>
+                <button onClick={() => void handleSaveProfile()} disabled={savingEdit} className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-500 disabled:opacity-60 flex items-center justify-center gap-2"><Save className="w-4 h-4" /> {savingEdit ? 'جارٍ الحفظ...' : 'حفظ المعلومات'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {editingListing && (
+          <div className="fixed inset-0 z-[80] bg-slate-950/60 backdrop-blur-sm p-4 flex items-center justify-center" dir="rtl">
+            <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl border border-slate-200 p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-3 mb-5">
+                <div>
+                  <h2 className="text-lg font-black text-slate-900">تعديل الإعلان</h2>
+                  <p className="text-xs text-slate-500 mt-1">تعديل السعر أو المعلومات قد يعيد الإعلان النشط إلى المراجعة.</p>
+                </div>
+                <button onClick={() => setEditingListing(null)} className="rounded-xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200" aria-label="إغلاق"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="space-y-4">
+                <label className="block text-sm font-bold text-slate-700">عنوان الكتاب
+                  <input value={listingForm.title} onChange={(e) => setListingForm({ ...listingForm, title: e.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="block text-sm font-bold text-slate-700">السعر (دج)
+                    <input type="number" min="0" value={listingForm.price} onChange={(e) => setListingForm({ ...listingForm, price: e.target.value })} dir="ltr" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                  </label>
+                  <label className="block text-sm font-bold text-slate-700">الحالة
+                    <select value={listingForm.condition} onChange={(e) => setListingForm({ ...listingForm, condition: e.target.value as BookListing['condition'] })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                      <option value="new">جديد</option><option value="like_new">شبه جديد</option><option value="good">حالة جيدة</option><option value="acceptable">مقبول</option>
+                    </select>
+                  </label>
+                </div>
+                <label className="block text-sm font-bold text-slate-700">نوع المعاملة
+                  <select value={listingForm.dealType} onChange={(e) => setListingForm({ ...listingForm, dealType: e.target.value as BookListing['dealType'] })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                    <option value="sale">بيع</option><option value="exchange">تبادل</option><option value="free">مجاني</option>
+                  </select>
+                </label>
+                <label className="block text-sm font-bold text-slate-700">الوصف
+                  <textarea value={listingForm.description} onChange={(e) => setListingForm({ ...listingForm, description: e.target.value })} rows={5} className="mt-1.5 w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                </label>
+                <div className="rounded-xl bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">الصور الحالية محفوظة. إذا غيّرت معلومات إعلان منشور، سيُعاد إلى «قيد المراجعة» لحماية المستخدمين.</div>
+              </div>
+              <div className="mt-6 flex gap-2">
+                <button onClick={() => setEditingListing(null)} className="flex-1 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">إلغاء</button>
+                <button onClick={() => void handleSaveListing()} disabled={savingEdit} className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-500 disabled:opacity-60 flex items-center justify-center gap-2"><Save className="w-4 h-4" /> {savingEdit ? 'جارٍ الحفظ...' : 'حفظ الإعلان'}</button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
 
