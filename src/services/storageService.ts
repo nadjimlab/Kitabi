@@ -134,14 +134,13 @@ export class StorageService {
       const { data: authData } = await supabase.auth.getUser();
       if (!authData.user || authData.user.id !== user.id) throw new Error('لا تملك صلاحية تعديل هذا الملف الشخصي.');
       const { error } = await supabase.from('profiles').update({
-        name: user.name,
-        phone: user.phone || null,
-        whatsapp: user.whatsapp || null,
-        municipality: user.municipality || null,
-        bio: user.bio || null,
-        updated_at: new Date().toISOString(),
+        name: user.name.trim(),
+        phone: user.phone.trim(),
+        whatsapp: user.whatsapp?.trim() || null,
+        municipality: user.municipality.trim(),
+        bio: user.bio?.trim() || null,
       }).eq('id', authData.user.id);
-      if (error) throw error;
+      if (error) throw new Error(`تعذر حفظ معلومات الملف الشخصي (${error.code || 'Supabase'}): ${error.message}`);
       this.currentUser = user;
       return;
     }
