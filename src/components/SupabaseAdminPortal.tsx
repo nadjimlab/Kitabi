@@ -206,7 +206,7 @@ export const SupabaseAdminPortal: React.FC = () => {
     setListingsLoading(true);
     const { data: rows, error: fetchError } = await supabase
       .from('listings')
-      .select('id,title,author,level,condition,deal_type,price,status,created_at,photos,description,seller_id,wilaya_name_ar,seller:profiles(name,email,phone)')
+      .select('id,title,author,level,condition,deal_type,price,status,created_at,photos,description,seller_id,wilaya_name_ar')
       .order('created_at', { ascending: false })
       .limit(150);
     if (fetchError) setError(fetchError.message);

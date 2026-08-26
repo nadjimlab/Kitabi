@@ -201,11 +201,17 @@ export class StorageService {
   static async getListings(): Promise<BookListing[]> {
     if (isSupabaseConfigured) {
       try {
-        let listingsQuery = supabase.from('listings').select('*, seller:profiles(*)').order('created_at', { ascending: false });
+        const listingsQuery = supabase.from('listings').select('*').order('created_at', { ascending: false });
         const viewerId = this.currentUser?.id || this.currentUid;
         const { data, error } = viewerId ? await listingsQuery.or(`status.eq.active,seller_id.eq.${viewerId}`) : await listingsQuery.eq('status', 'active');
         if (!error && data) {
-          const listings = data.map((row) => this.mapSupabaseListing(row as Record<string, unknown>));
+          const sellerIds = [...new Set(data.map((row) => String((row as Record<string, unknown>).seller_id || '')).filter(Boolean))];
+          const { data: sellers } = sellerIds.length ? await supabase.from('profiles').select('*').in('id', sellerIds) : { data: [] };
+          const sellerById = new Map((sellers || []).map((seller) => [String(seller.id), seller]));
+          const listings = data.map((row) => {
+            const record = row as Record<string, unknown>;
+            return this.mapSupabaseListing({ ...record, seller: sellerById.get(String(record.seller_id || '')) || {} });
+          });
           this.listingsSnapshot = listings;
           return listings;
         }
