@@ -18,6 +18,7 @@ interface DashboardListing {
 interface DashboardUser { id: string; name: string; email: string; role: string; created_at: string; }
 interface DashboardData {
   users: number; listings: number; activeListings: number; pendingListings: number;
+  soldListings: number; unavailableListings: number; reservedListings: number; completedListings: number;
   pendingReports: number; ratings: number; messages: number; exchanges: number; favorites: number;
   recentListings: DashboardListing[]; recentUsers: DashboardUser[];
 }
@@ -35,7 +36,7 @@ interface AdminChatRow {
   participant_ids: string[]; listing?: { title?: string } | null;
 }
 
-const emptyData: DashboardData = { users: 0, listings: 0, activeListings: 0, pendingListings: 0, pendingReports: 0, ratings: 0, messages: 0, exchanges: 0, favorites: 0, recentListings: [], recentUsers: [] };
+const emptyData: DashboardData = { users: 0, listings: 0, activeListings: 0, pendingListings: 0, soldListings: 0, unavailableListings: 0, reservedListings: 0, completedListings: 0, pendingReports: 0, ratings: 0, messages: 0, exchanges: 0, favorites: 0, recentListings: [], recentUsers: [] };
 const dateLabel = (value: string) => new Date(value).toLocaleDateString('ar-DZ', { day: 'numeric', month: 'short' });
 const dateTimeLabel = (value: string) => new Date(value).toLocaleString('ar-DZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const isToday = (value: string) => new Date(value).toDateString() === new Date().toDateString();
@@ -48,6 +49,8 @@ const STATUS_LABELS: Record<string, { label: string; classes: string }> = {
   flagged: { label: 'موقوف', classes: 'bg-rose-50 text-rose-700 border-rose-200' },
   reserved: { label: 'محجوز', classes: 'bg-blue-50 text-blue-700 border-blue-200' },
   completed: { label: 'مكتمل', classes: 'bg-slate-100 text-slate-600 border-slate-200' },
+  sold: { label: 'مباع', classes: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  unavailable: { label: 'غير متوفر', classes: 'bg-orange-50 text-orange-700 border-orange-200' },
 };
 const REPORT_REASON_LABELS: Record<string, string> = {
   wrong_info: 'معلومات خاطئة', prohibited_item: 'محتوى ممنوع', offensive: 'محتوى مسيء',
@@ -109,11 +112,10 @@ export const SupabaseAdminPortal: React.FC = () => {
       const result = await query;
       return result.error ? { data: null, count: 0, error: null } : result;
     };
-    const [users_, listings_, active, pendingListings, reports_, ratings, messages, exchanges, favorites, recentListings, recentUsers] = await Promise.all([
+    const [users_, listings_, listingStatuses, reports_, ratings, messages, exchanges, favorites, recentListings, recentUsers] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }),
       supabase.from('listings').select('id', { count: 'exact', head: true }),
-      supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('listings').select('status'),
       optional(supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending')),
       optional(supabase.from('ratings').select('id', { count: 'exact', head: true })),
       optional(supabase.from('messages').select('id', { count: 'exact', head: true })),
@@ -122,11 +124,18 @@ export const SupabaseAdminPortal: React.FC = () => {
       supabase.from('listings').select('id,title,status,created_at,level,deal_type,photos,description,condition,price,seller_id').order('created_at', { ascending: false }).limit(6),
       supabase.from('profiles').select('id,name,email,role,created_at').order('created_at', { ascending: false }).limit(5),
     ]);
-    const failed = [users_, listings_, active, pendingListings, recentListings, recentUsers].find((result) => result.error);
+    const failed = [users_, listings_, listingStatuses, recentListings, recentUsers].find((result) => result.error);
     if (failed?.error) throw failed.error;
+    const statusCounts = ((listingStatuses.data || []) as Array<{ status?: string }>).reduce<Record<string, number>>((counts, row) => {
+      const status = row.status || 'unknown';
+      counts[status] = (counts[status] || 0) + 1;
+      return counts;
+    }, {});
     setData({
-      users: users_.count || 0, listings: listings_.count || 0, activeListings: active.count || 0,
-      pendingListings: pendingListings.count || 0, pendingReports: reports_.count || 0, ratings: ratings.count || 0,
+      users: users_.count || 0, listings: listings_.count || 0, activeListings: statusCounts.active || 0,
+      pendingListings: statusCounts.pending || 0, soldListings: statusCounts.sold || 0, unavailableListings: statusCounts.unavailable || 0,
+      reservedListings: statusCounts.reserved || 0, completedListings: statusCounts.completed || 0,
+      pendingReports: reports_.count || 0, ratings: ratings.count || 0,
       messages: messages.count || 0, exchanges: exchanges.count || 0, favorites: favorites.count || 0,
       recentListings: (recentListings.data || []) as DashboardListing[], recentUsers: (recentUsers.data || []) as DashboardUser[],
     });
@@ -351,10 +360,19 @@ export const SupabaseAdminPortal: React.FC = () => {
 
   const statCards = [
     { label: 'المستخدمون', value: data.users, icon: Users, tone: 'blue', note: 'حسابات مسجلة' },
-    { label: 'الإعلانات', value: data.listings, icon: BookOpen, tone: 'brand', note: `${data.activeListings} نشطة · ${data.pendingListings} قيد المراجعة` },
+    { label: 'كل الإعلانات', value: data.listings, icon: BookOpen, tone: 'brand', note: `${data.activeListings} متاحة · ${data.pendingListings} قيد المراجعة` },
     { label: 'التفاعلات', value: data.messages + data.favorites, icon: Activity, tone: 'violet', note: `${data.messages} رسالة · ${data.favorites} حفظ` },
     { label: 'تحتاج مراجعة', value: data.pendingReports, icon: AlertTriangle, tone: 'amber', note: 'بلاغات معلقة' },
   ];
+  const listingStatusCards = [
+    { label: 'متاحة الآن', value: data.activeListings, icon: CheckCircle2, tone: 'brand', bar: 'bg-brand-500' },
+    { label: 'مباعة', value: data.soldListings, icon: Check, tone: 'indigo', bar: 'bg-indigo-500' },
+    { label: 'غير متوفرة', value: data.unavailableListings, icon: ShieldOff, tone: 'orange', bar: 'bg-orange-500' },
+    { label: 'قيد المراجعة', value: data.pendingListings, icon: Clock3, tone: 'amber', bar: 'bg-amber-500' },
+    { label: 'محجوزة', value: data.reservedListings, icon: Clock3, tone: 'blue', bar: 'bg-blue-500' },
+    { label: 'مكتملة', value: data.completedListings, icon: CheckCircle2, tone: 'slate', bar: 'bg-slate-500' },
+  ];
+  const statusToneClasses: Record<string, string> = { brand: 'bg-brand-50 text-brand-600', indigo: 'bg-indigo-50 text-indigo-600', orange: 'bg-orange-50 text-orange-600', amber: 'bg-amber-50 text-amber-600', blue: 'bg-blue-50 text-blue-600', slate: 'bg-slate-100 text-slate-600' };
   const toneClasses: Record<string, string> = { blue: 'bg-blue-50 text-blue-600', brand: 'bg-brand-50 text-brand-600', violet: 'bg-violet-50 text-violet-600', amber: 'bg-amber-50 text-amber-600' };
 
   return (
@@ -502,6 +520,24 @@ export const SupabaseAdminPortal: React.FC = () => {
                     <div className="text-[10px] text-slate-400 mt-2">{note}</div>
                   </div>
                 ))}
+              </section>
+
+              <section className="mt-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-3 mb-5">
+                  <div><h3 className="font-black">حالة الكتب بالتفصيل</h3><p className="text-xs text-slate-400 mt-1">توزيع الإعلانات حسب حالتها الحالية</p></div>
+                  <BarChart3 className="w-5 h-5 text-brand-600" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {listingStatusCards.map(({ label, value, icon: Icon, tone, bar }) => {
+                    const percentage = data.listings > 0 ? Math.round((value / data.listings) * 100) : 0;
+                    return <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5">
+                      <div className="flex items-center justify-between gap-2"><span className={`w-9 h-9 rounded-xl flex items-center justify-center ${statusToneClasses[tone]}`}><Icon className="w-4 h-4" /></span><span className="text-[11px] font-black text-slate-400">{percentage}%</span></div>
+                      <div className="text-2xl font-black mt-3">{loading ? '—' : value}</div>
+                      <div className="text-xs font-bold text-slate-600 mt-1">{label}</div>
+                      <div className="h-1.5 bg-white rounded-full mt-3 overflow-hidden"><div className={`h-full rounded-full ${bar}`} style={{ width: `${percentage}%` }} /></div>
+                    </div>;
+                  })}
+                </div>
               </section>
 
               <div className="grid xl:grid-cols-12 gap-5 mt-6">
