@@ -31,7 +31,6 @@ import {
   RecentSearchItem,
   CachedSearchEntry,
 } from '../types';
-import { INITIAL_LISTINGS, INITIAL_USERS } from '../data/algerianData';
 
 const SEARCH_CACHE_KEY = 'ktabi_search_cache_v1';
 const RECENT_SEARCHES_KEY = 'ktabi_recent_searches_v1';
@@ -59,7 +58,7 @@ function firebaseReady() {
 export class StorageService {
   private static currentUser: User | null = null;
   private static currentUid: string | null = null;
-  private static listingsSnapshot: BookListing[] = INITIAL_LISTINGS;
+  private static listingsSnapshot: BookListing[] = [];
 
   static setAuthUser(firebaseUser: Pick<FirebaseUser, 'uid'> | null, profile: User | null) {
     this.currentUid = firebaseUser?.uid ?? null;
@@ -152,20 +151,21 @@ export class StorageService {
         let listingsQuery = supabase.from('listings').select('*, seller:profiles(*)').order('created_at', { ascending: false });
         const viewerId = this.currentUser?.id || this.currentUid;
         const { data, error } = viewerId ? await listingsQuery.or(`status.eq.active,seller_id.eq.${viewerId}`) : await listingsQuery.eq('status', 'active');
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           const listings = data.map((row) => this.mapSupabaseListing(row as Record<string, unknown>));
           this.listingsSnapshot = listings;
           return listings;
         }
       } catch (error) { console.warn('Supabase listings read failed', error); }
     }
-    if (!firestoreReady() || !db) { this.listingsSnapshot = INITIAL_LISTINGS; return INITIAL_LISTINGS; }
+    if (isSupabaseConfigured) { this.listingsSnapshot = []; return []; }
+    if (!firestoreReady() || !db) { this.listingsSnapshot = []; return []; }
     try {
       const snapshot = await getDocs(collection(db, 'listings'));
       const listings = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as BookListing);
-      this.listingsSnapshot = listings.length > 0 ? listings : INITIAL_LISTINGS;
-      return this.listingsSnapshot;
-    } catch (error) { console.error('Firestore listings read failed', error); this.listingsSnapshot = INITIAL_LISTINGS; return INITIAL_LISTINGS; }
+      this.listingsSnapshot = listings;
+      return listings;
+    } catch (error) { console.error('Firestore listings read failed', error); this.listingsSnapshot = []; return []; }
   }
   private static mapSupabaseListing(row: Record<string, unknown>): BookListing {
     const sellerRow = (row.seller || {}) as Record<string, unknown>;
@@ -410,7 +410,7 @@ export class StorageService {
     const totalBooks = listings.length;
     const activeExchanges = listings.filter((listing) => listing.dealType === 'exchange').length;
     const freeDonations = listings.filter((listing) => listing.dealType === 'free').length;
-    const estimatedSavingsDZD = listings.reduce((total, listing) => listing.dealType === 'free' ? total + (listing.originalPrice || 600) : listing.dealType === 'exchange' ? total + 800 : total + Math.max(0, (listing.originalPrice || 0) - (listing.price || 0)), 184500);
+    const estimatedSavingsDZD = listings.reduce((total, listing) => listing.dealType === 'free' ? total + (listing.originalPrice || 600) : listing.dealType === 'exchange' ? total + 800 : total + Math.max(0, (listing.originalPrice || 0) - (listing.price || 0)), 0);
     return { totalBooks, activeExchanges, freeDonations, estimatedSavingsDZD, activeWilayasCount: new Set(listings.map((listing) => listing.wilayaCode)).size };
   }
 

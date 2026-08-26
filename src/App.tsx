@@ -31,7 +31,7 @@ import { createNotification } from './services/notificationsService';
 import { EmailAuthModal } from './components/EmailAuthModal';
 import { RatingModal } from './components/RatingModal';
 import { LegalPage } from './components/LegalPage';
-import { EDUCATION_LEVELS, WILAYAS, INITIAL_LISTINGS } from './data/algerianData';
+import { EDUCATION_LEVELS, WILAYAS } from './data/algerianData';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { HeroSearch } from './components/HeroSearch';
@@ -76,7 +76,7 @@ export default function App() {
 
   // Application Data States
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [listings, setListings] = useState<BookListing[]>(INITIAL_LISTINGS);
+  const [listings, setListings] = useState<BookListing[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [chats, setChats] = useState<any[]>([]);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -210,8 +210,8 @@ export default function App() {
         currentUser ? StorageService.getChats() : Promise.resolve([]),
       ]);
       if (!cancelled) {
-        // Keep the public marketplace useful before the first Supabase listings are published.
-        setListings(remoteListings.length > 0 ? remoteListings : INITIAL_LISTINGS);
+        // The marketplace must reflect real Supabase listings only; an empty database stays empty.
+        setListings(remoteListings);
         setFavorites(remoteFavorites);
         setChats(remoteChats);
         setStats(StorageService.getPlatformStats(remoteListings));
