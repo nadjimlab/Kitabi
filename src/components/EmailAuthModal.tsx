@@ -24,6 +24,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose,
   const captchaRef = useRef<TurnstileInstance>(null);
   const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
   const needsCaptcha = Boolean(turnstileSiteKey) && mode !== 'update';
+  const captchaUnavailable = isSupabaseConfigured && !turnstileSiteKey && mode !== 'update';
 
   useEffect(() => {
     if (!isOpen) {
@@ -129,6 +130,11 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose,
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> <span>أضف متغيرات Supabase إلى ملف البيئة أولًا.</span>
             </div>
           )}
+          {captchaUnavailable && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> <span>اختبار الأمان غير متاح في هذه النسخة. يرجى إعادة نشر Vercel بعد إضافة VITE_TURNSTILE_SITE_KEY.</span>
+            </div>
+          )}
           {mode === 'update' ? (
             <>
               <p className="text-xs text-slate-500 leading-6">اكتب كلمة مرور جديدة لحسابك. يجب أن تتكون من 6 أحرف على الأقل.</p>
@@ -166,7 +172,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose,
               <Turnstile ref={captchaRef} siteKey={turnstileSiteKey} onSuccess={setCaptchaToken} onExpire={() => setCaptchaToken('')} onError={() => { setCaptchaToken(''); setError('تعذر تحميل اختبار الأمان. تحقق من إعدادات Turnstile.'); }} language="ar" theme="light" />
             </div>
           )}
-          <button type="submit" disabled={isSubmitting || !isSupabaseConfigured} className="w-full bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white font-black text-sm px-4 py-3 rounded-xl flex items-center justify-center gap-2">
+          <button type="submit" disabled={isSubmitting || !isSupabaseConfigured || captchaUnavailable} className="w-full bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white font-black text-sm px-4 py-3 rounded-xl flex items-center justify-center gap-2">
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : mode === 'update' ? <KeyRound className="w-4 h-4" /> : mode === 'forgot' ? <Mail className="w-4 h-4" /> : mode === 'login' ? <CheckCircle2 className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
             <span>{mode === 'update' ? 'حفظ كلمة المرور الجديدة' : mode === 'forgot' ? 'إرسال رابط الاستعادة' : mode === 'login' ? 'تسجيل الدخول' : 'إنشاء الحساب'}</span>
           </button>

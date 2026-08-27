@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kitabi-shell-v1';
+const CACHE_NAME = 'kitabi-shell-v2';
 const SHELL_ASSETS = ['/', '/manifest.webmanifest', '/favicon.svg', '/pwa-192.png', '/pwa-512.png'];
 
 self.addEventListener('install', (event) => {
