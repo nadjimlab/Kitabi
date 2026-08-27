@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity, AlertTriangle, ArrowUpLeft, BarChart3, Bell, BookOpen, Check,
   CheckCircle2, ChevronLeft, Clock3, LayoutDashboard, LogOut, MessageSquare,
-  RefreshCw, Search, ShieldCheck, ShieldOff, Star, Users, X, XCircle
+  RefreshCw, Search, ShieldCheck, ShieldOff, Star, Users, X, XCircle, Pencil, Trash2, Ban
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { createNotification } from '../services/notificationsService';
@@ -25,6 +25,7 @@ interface DashboardData {
 }
 interface AdminUserRow {
   id: string; name: string; email: string; phone: string; wilaya_code: number;
+  municipality?: string; whatsapp?: string | null; bio?: string | null; avatar?: string | null;
   role: string; is_verified: boolean; rating: number; created_at: string;
 }
 interface AdminReportRow {
@@ -93,6 +94,10 @@ export const SupabaseAdminPortal: React.FC = () => {
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [roleBusyId, setRoleBusyId] = useState<string | null>(null);
+  const [listingBusyId, setListingBusyId] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<AdminUserRow | null>(null);
+  const [userForm, setUserForm] = useState({ name: '', phone: '', whatsapp: '', municipality: '', bio: '' });
+  const [userSaveBusy, setUserSaveBusy] = useState(false);
 
   const [reports, setReports] = useState<AdminReportRow[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -200,30 +205,78 @@ export const SupabaseAdminPortal: React.FC = () => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return;
     const note = status === 'flagged'
-      ? window.prompt('اكتب سبب رفض الإعلان ليظهر للناشر:', 'يرجى تعديل الصور أو المعلومات.')
+      ? window.prompt('اكتب سبب حجب الإعلان ليظهر للناشر:', 'يرجى تعديل الصور أو المعلومات.')
       : 'تمت الموافقة بعد المراجعة.';
     if (status === 'flagged' && note === null) return;
+    const listingOwner = reviewListing?.seller_id || listings.find((item) => item.id === listingId)?.seller_id;
     const { error: updateError } = await supabase.from('listings')
       .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: userData.user.id, moderation_note: note || 'يرجى مراجعة الإعلان.' })
       .eq('id', listingId);
     if (updateError) { setError(updateError.message); return; }
-    try {
-      await createNotification({
-        recipient_id: reviewListing?.seller_id || '',
-        actor_id: userData.user.id,
-        listing_id: listingId,
-        type: 'listing_status',
-        title: status === 'active' ? 'تم قبول إعلانك' : 'تم رفض إعلانك',
-        message: status === 'active'
-          ? 'تمت مراجعة كتابك والموافقة عليه، وأصبح ظاهرًا في السوق.'
-          : `تم رفض إعلانك. السبب: ${note || 'يرجى مراجعة معلومات الكتاب.'}`,
-      });
-    } catch (notificationError) {
-      console.warn('Moderation notification failed', notificationError);
+    if (listingOwner) {
+      try {
+        await createNotification({
+          recipient_id: listingOwner,
+          actor_id: userData.user.id,
+          listing_id: listingId,
+          type: 'listing_status',
+          title: status === 'active' ? 'تم قبول إعلانك' : 'تم حجب إعلانك',
+          message: status === 'active'
+            ? 'تمت مراجعة كتابك والموافقة عليه، وأصبح ظاهرًا في السوق.'
+            : `تم حجب إعلانك. السبب: ${note || 'يرجى مراجعة معلومات الكتاب.'}`,
+        });
+      } catch (notificationError) {
+        console.warn('Moderation notification failed', notificationError);
+      }
     }
     setReviewListing(null);
     await loadDashboard(userData.user.id);
     if (listingsLoaded) await loadListings();
+  };
+
+  const deleteListing = async (listing: DashboardListing) => {
+    if (!window.confirm(`حذف إعلان «${listing.title}» نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
+    setListingBusyId(listing.id); setError('');
+    const marker = `/storage/v1/object/public/book-images/`;
+    const paths = (listing.photos || []).flatMap((photo) => {
+      const index = photo.indexOf(marker);
+      return index >= 0 ? [decodeURIComponent(photo.slice(index + marker.length))] : [];
+    });
+    if (paths.length) {
+      const { error: storageError } = await supabase.storage.from('book-images').remove(paths);
+      if (storageError) console.warn('Listing image cleanup skipped', storageError);
+    }
+    const { error: deleteError } = await supabase.from('listings').delete().eq('id', listing.id);
+    if (deleteError) { setError('تعذر حذف الإعلان: ' + deleteError.message); setListingBusyId(null); return; }
+    setListings((prev) => prev.filter((item) => item.id !== listing.id));
+    setReviewListing(null);
+    setListingBusyId(null);
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData.user) await loadDashboard(userData.user.id);
+  };
+
+  const openUserEditor = (user: AdminUserRow) => {
+    setEditingUser(user);
+    setUserForm({ name: user.name || '', phone: user.phone || '', whatsapp: user.whatsapp || '', municipality: user.municipality || '', bio: user.bio || '' });
+    setError('');
+  };
+
+  const saveUserEdit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingUser || !userForm.name.trim()) { setError('يرجى كتابة اسم المستخدم.'); return; }
+    setUserSaveBusy(true); setError('');
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) { setUserSaveBusy(false); return; }
+    const { error: updateError } = await supabase.from('profiles').update({
+      name: userForm.name.trim(), phone: userForm.phone.trim(), whatsapp: userForm.whatsapp.trim() || null,
+      municipality: userForm.municipality.trim(), bio: userForm.bio.trim() || null,
+    }).eq('id', editingUser.id);
+    if (updateError) setError('تعذر حفظ بيانات المستخدم: ' + updateError.message);
+    else {
+      setUsers((prev) => prev.map((user) => user.id === editingUser.id ? { ...user, ...userForm, name: userForm.name.trim(), phone: userForm.phone.trim(), whatsapp: userForm.whatsapp.trim() || null, municipality: userForm.municipality.trim(), bio: userForm.bio.trim() || null } : user));
+      setEditingUser(null);
+    }
+    setUserSaveBusy(false);
   };
 
   const loadListings = async () => {
@@ -234,7 +287,11 @@ export const SupabaseAdminPortal: React.FC = () => {
       .order('created_at', { ascending: false })
       .limit(150);
     if (fetchError) setError(fetchError.message);
-    setListings((rows || []) as unknown as DashboardListing[]);
+    const listingRows = (rows || []) as unknown as DashboardListing[];
+    const sellerIds = [...new Set(listingRows.map((row) => row.seller_id).filter(Boolean))] as string[];
+    const { data: sellerRows } = sellerIds.length ? await supabase.from('profiles').select('id,name,email,phone').in('id', sellerIds) : { data: [] };
+    const sellerById = new Map((sellerRows || []).map((seller) => [String(seller.id), seller]));
+    setListings(listingRows.map((listing) => ({ ...listing, seller: sellerById.get(String(listing.seller_id)) || undefined })));
     setListingsLoading(false); setListingsLoaded(true);
   };
 
@@ -242,7 +299,7 @@ export const SupabaseAdminPortal: React.FC = () => {
     setUsersLoading(true);
     const { data: rows, error: fetchError } = await supabase
       .from('profiles')
-      .select('id,name,email,phone,wilaya_code,role,is_verified,rating,created_at')
+      .select('id,name,email,phone,wilaya_code,municipality,whatsapp,bio,avatar,role,is_verified,rating,created_at')
       .order('created_at', { ascending: false })
       .limit(300);
     if (fetchError) setError(fetchError.message);
@@ -444,13 +501,38 @@ export const SupabaseAdminPortal: React.FC = () => {
               <div><strong>الحالة:</strong> {CONDITION_LABELS[reviewListing.condition || ''] || reviewListing.condition || 'غير محددة'} · <strong>السعر:</strong> {reviewListing.price || 0} دج</div>
               <div className="mt-2 text-slate-600">{reviewListing.description || 'لا يوجد وصف.'}</div>
             </div>
-            {reviewListing.status === 'pending' && (
-              <div className="mt-5 flex gap-3">
-                <button onClick={() => void moderateListing(reviewListing.id, 'active')} className="flex-1 rounded-xl bg-brand-600 text-white p-3 font-black">اعتماد ونشر</button>
-                <button onClick={() => void moderateListing(reviewListing.id, 'flagged')} className="flex-1 rounded-xl bg-rose-600 text-white p-3 font-black">رفض مع سبب</button>
-              </div>
-            )}
+            <div className="mt-5 flex flex-wrap gap-3">
+              {reviewListing.status !== 'active' && <button onClick={() => void moderateListing(reviewListing.id, 'active')} className="flex-1 min-w-[150px] rounded-xl bg-brand-600 text-white p-3 font-black">اعتماد ونشر</button>}
+              {reviewListing.status !== 'flagged' && <button onClick={() => void moderateListing(reviewListing.id, 'flagged')} className="flex-1 min-w-[150px] rounded-xl bg-amber-600 text-white p-3 font-black">حجب الإعلان</button>}
+              <button onClick={() => void deleteListing(reviewListing)} disabled={listingBusyId === reviewListing.id} className="flex-1 min-w-[150px] rounded-xl bg-slate-800 text-white p-3 font-black disabled:opacity-50">حذف نهائي</button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {editingUser && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm p-4 flex items-center justify-center">
+          <form onSubmit={saveUserEdit} className="w-full max-w-lg rounded-3xl bg-white shadow-2xl p-5 sm:p-7" dir="rtl">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs text-brand-600 font-bold">إدارة الحساب</div>
+                <h2 className="text-xl font-black mt-1 font-serif">تعديل بيانات المستخدم</h2>
+                <p className="text-xs text-slate-400 mt-1" dir="ltr">{editingUser.email}</p>
+              </div>
+              <button type="button" onClick={() => setEditingUser(null)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600"><X className="w-5 h-5 mx-auto" /></button>
+            </div>
+            <div className="mt-5 grid sm:grid-cols-2 gap-3">
+              <label className="text-xs font-bold text-slate-700">الاسم<input required value={userForm.name} onChange={(e) => setUserForm((form) => ({ ...form, name: e.target.value }))} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none focus:border-brand-500" /></label>
+              <label className="text-xs font-bold text-slate-700">الهاتف<input value={userForm.phone} onChange={(e) => setUserForm((form) => ({ ...form, phone: e.target.value }))} dir="ltr" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none focus:border-brand-500" /></label>
+              <label className="text-xs font-bold text-slate-700">واتساب<input value={userForm.whatsapp} onChange={(e) => setUserForm((form) => ({ ...form, whatsapp: e.target.value }))} dir="ltr" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none focus:border-brand-500" /></label>
+              <label className="text-xs font-bold text-slate-700">البلدية<input value={userForm.municipality} onChange={(e) => setUserForm((form) => ({ ...form, municipality: e.target.value }))} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none focus:border-brand-500" /></label>
+              <label className="text-xs font-bold text-slate-700 sm:col-span-2">نبذة مختصرة<textarea rows={3} value={userForm.bio} onChange={(e) => setUserForm((form) => ({ ...form, bio: e.target.value }))} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none focus:border-brand-500 resize-none" /></label>
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button type="button" onClick={() => setEditingUser(null)} className="flex-1 rounded-xl bg-slate-100 text-slate-700 p-3 font-bold">إلغاء</button>
+              <button type="submit" disabled={userSaveBusy} className="flex-1 rounded-xl bg-brand-600 text-white p-3 font-black disabled:opacity-50">{userSaveBusy ? 'جاري الحفظ...' : 'حفظ التعديلات'}</button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -722,9 +804,15 @@ export const SupabaseAdminPortal: React.FC = () => {
                           {listing.status === 'pending' && (
                             <>
                               <button onClick={() => void moderateListing(listing.id, 'active')} title="اعتماد الإعلان" className="w-7 h-7 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center hover:bg-brand-200"><Check className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => void moderateListing(listing.id, 'flagged')} title="رفض الإعلان" className="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center hover:bg-rose-200"><X className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => void moderateListing(listing.id, 'flagged')} title="حجب الإعلان" className="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center hover:bg-rose-200"><Ban className="w-3.5 h-3.5" /></button>
                             </>
                           )}
+                          {listing.status === 'flagged' ? (
+                            <button onClick={() => void moderateListing(listing.id, 'active')} title="إعادة نشر الإعلان" className="w-7 h-7 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center hover:bg-brand-200"><Check className="w-3.5 h-3.5" /></button>
+                          ) : listing.status !== 'pending' && (
+                            <button onClick={() => void moderateListing(listing.id, 'flagged')} title="حجب الإعلان" className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center hover:bg-amber-200"><Ban className="w-3.5 h-3.5" /></button>
+                          )}
+                          <button onClick={() => void deleteListing(listing)} disabled={listingBusyId === listing.id} title="حذف الإعلان نهائيًا" className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 disabled:opacity-50"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       </div>
                     ))}
@@ -764,6 +852,7 @@ export const SupabaseAdminPortal: React.FC = () => {
                           <span className={`text-[10px] rounded-full px-2.5 py-1 font-bold border ${user.role === 'admin' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
                             {user.role === 'admin' ? 'مسؤول' : 'مستخدم'}
                           </span>
+                          <button onClick={() => openUserEditor(user)} title="تعديل بيانات المستخدم" className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center hover:bg-blue-100"><Pencil className="w-3.5 h-3.5" /></button>
                           <button
                             onClick={() => void toggleAdminRole(user)}
                             disabled={roleBusyId === user.id || user.id === sessionUserId}
