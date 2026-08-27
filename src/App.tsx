@@ -47,6 +47,7 @@ import { SupabaseAdminPortal } from './components/SupabaseAdminPortal';
 import { FilterDrawer } from './components/FilterDrawer';
 import { RecentSearchesBar } from './components/RecentSearchesBar';
 import { RecentSearchItem } from './types';
+import { InstallAppPrompt } from './components/InstallAppPrompt';
 
 const getDefaultAvatar = (name: string, email = '') => `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name || email || 'Kitabi')}&backgroundColor=0b192c&fontFamily=Arial`;
 
@@ -79,6 +80,7 @@ export default function App() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [chats, setChats] = useState<any[]>([]);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [pendingView, setPendingView] = useState<'admin' | 'profile' | null>(null);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
@@ -156,7 +158,11 @@ export default function App() {
         if (mounted) setAuthLoading(false);
       }
     });
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+        setIsAuthOpen(true);
+      }
       try {
         if (session?.user) await loadProfile(session.user.id, session.user.email || '');
         else if (mounted) { setCurrentUser(null); StorageService.setAuthUser(null, null); }
@@ -947,6 +953,8 @@ export default function App() {
         </div>
       </footer>
 
+      <InstallAppPrompt />
+
       {/* Mobile Bottom Navigation Bar */}
       <BottomNav
         currentView={currentView}
@@ -1043,8 +1051,9 @@ export default function App() {
 
       <EmailAuthModal
         isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
+        onClose={() => { setIsAuthOpen(false); setIsPasswordRecovery(false); }}
         lang={lang}
+        recoveryMode={isPasswordRecovery}
         onAuthenticated={handleAuthSuccess}
       />
 

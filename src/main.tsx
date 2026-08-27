@@ -6,6 +6,14 @@ import './index.css';
 
 const isControlRoute = window.location.pathname === '/admin' || window.location.pathname === '/admin/' || window.location.pathname === '/control' || window.location.pathname === '/control/';
 
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js').catch((error) => {
+      console.warn('Kitabi PWA registration failed', error);
+    });
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {isControlRoute ? <SupabaseAdminPortal /> : <App />}

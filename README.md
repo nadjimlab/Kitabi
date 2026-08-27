@@ -37,9 +37,10 @@ npm run dev
 ```env
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-publishable-or-anon-key
+VITE_TURNSTILE_SITE_KEY=your-cloudflare-turnstile-site-key
 ```
 
-استخدم مفتاح Supabase publishable أو anon فقط في الواجهة. لا تضع `service_role` أو أي مفتاح سري في متغير يبدأ بـ`VITE_`، ولا ترفعه إلى GitHub.
+استخدم مفتاح Supabase publishable أو anon فقط في الواجهة. لا تضع `service_role` أو أي مفتاح سري في متغير يبدأ بـ`VITE_`، ولا ترفعه إلى GitHub. `VITE_TURNSTILE_SITE_KEY` هو المفتاح العام فقط؛ أما Secret Key فيُحفظ داخل إعدادات Supabase ولا يوضع في Vercel أو الواجهة.
 
 ## إعداد Supabase
 
@@ -47,11 +48,19 @@ VITE_SUPABASE_ANON_KEY=your-publishable-or-anon-key
 
 يجب ضبط bucket الصور `book-images` على الأنواع `image/jpeg` و`image/png` و`image/webp`، مع حد أقصى 5 ميغابايت، وأن تسمح سياسة الرفع بأن يكون المجلد الأول مساويًا لـ`auth.uid()`.
 
-اجعل دور المسؤول داخل `public.profiles.role` يساوي `admin` للحساب الذي سيستخدم لوحة التحكم. لا يكفي إخفاء الرابط من الواجهة؛ لوحة التحكم نفسها تتحقق من جلسة Supabase والدور، كما تحمي RLS العمليات الحساسة.
+اجعل دور المسؤول داخل `public.profiles.role` يساوي `admin` للحساب الذي سيستخدم لوحة التحكم. لا يكفي إخفاء الرابط من الواجهة؛ لوحة التحكم نفسها تتحقق من جلسة Supabase والدور، كما تحمي RLS العمليات الحساسة. فعّل استعادة كلمة المرور في Auth، واضبط Site URL وRedirect URLs على نطاق Vercel.
 
 ## دورة الإعلان
 
 عند نشر إعلان جديد، يحفظه التطبيق بحالة `pending`. لا يستطيع الزائر رؤيته. يراجع المسؤول الصور والمعلومات والناشر، ثم يغيّر الحالة إلى `active` أو `flagged` مع سبب الرفض. عند تعديل إعلان فعال، يعود تلقائيًا إلى `pending` لمراجعة جديدة.
+
+## استعادة كلمة المرور والحماية من الروبوتات
+
+تحتوي نافذة الدخول على رابط «نسيت كلمة المرور؟». يرسل Supabase رابط الاستعادة إلى البريد الإلكتروني، وبعد فتحه يظهر نموذج تعيين كلمة مرور جديدة. لتفعيل حماية الروبوتات، أنشئ Turnstile Widget في Cloudflare، وضع Site Key في `VITE_TURNSTILE_SITE_KEY`، ثم فعّل CAPTCHA Protection في Supabase Auth وأدخل Secret Key داخل لوحة Supabase. عندها يستخدم التطبيق الرمز في التسجيل والدخول واستعادة كلمة المرور.
+
+## التثبيت كتطبيق PWA
+
+يحتوي المشروع على `manifest.webmanifest` وservice worker وأيقونات PWA. في Chrome أو Edge سيظهر خيار «تثبيت كِتابي» تلقائيًا عند استيفاء شروط المتصفح. على iPhone افتح الموقع في Safari ثم اختر المشاركة ثم «إضافة إلى الشاشة الرئيسية». لا يحتاج المستخدم إلى متجر تطبيقات، وتبقى العمليات التي تتطلب اتصالًا مثل المصادقة والمحادثات مرتبطة بالإنترنت.
 
 ## أوامر الجودة والبناء
 
