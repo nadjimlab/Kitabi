@@ -16,7 +16,6 @@ import {
   ArrowRight,
   Filter,
   CheckCircle2,
-  Building2
 } from 'lucide-react';
 import { 
   BookListing, 
@@ -633,35 +632,6 @@ export default function App() {
                 >
                   <RefreshCw className="w-4 h-4 text-brand-700 animate-spin-slow" />
                   <span>ابدأ التبادل الآن 🔄</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Bookstore & Partner Section (Lead Gen Architecture) */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-              <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/30 flex items-center justify-center shrink-0">
-                    <Building2 className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-base text-slate-900 font-serif">
-                      أنت صاحب مكتبة أو نقطة بيع معتمدة في الجزائر؟
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1 max-w-lg">
-                      انضم مجاناً لشبكة "مكتبات كِتابي المعتمدة" واعرض مخزونك من الكتب والكراريس لأولياء الأمور والطلبة في ولايتك.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    alert('مرحباً بك! يمكنك التبديل لحساب "مكتبة النجاح المعتمدة" من صفحة الحساب لتجربة واجهة المكتبات.');
-                    navigate('profile');
-                  }}
-                  className="bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-xs px-5 py-3 rounded-2xl border border-slate-700 transition-colors shrink-0"
-                >
-                  انضم كـ مكتبة شريكة
                 </button>
               </div>
             </div>
