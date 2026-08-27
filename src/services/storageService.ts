@@ -1,23 +1,3 @@
-import {
-  addDoc,
-  arrayUnion,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  increment,
-  limit,
-  orderBy,
-  query,
-  runTransaction,
-  setDoc,
-  updateDoc,
-  where,
-} from 'firebase/firestore';
-import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { User as FirebaseUser } from 'firebase/auth';
-import { db, isFirebaseConfigured, storage } from '../lib/firebase';
 import { supabase, isSupabaseConfigured, SUPABASE_BUCKET } from './supabaseClient';
 import {
   BookListing,
@@ -39,20 +19,8 @@ const CACHE_TTL_MS = 30 * 60 * 1000;
 const MAX_CACHE_ENTRIES = 20;
 const MAX_RECENT_SEARCHES = 12;
 
-function asRecord<T extends object>(value: T) {
-  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
-}
-
-function formatNow() {
-  return new Date().toLocaleString('ar-DZ', { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-function firestoreReady() {
-  return Boolean(isFirebaseConfigured && db);
-}
-
-function firebaseReady() {
-  return Boolean(firestoreReady() && storage);
+function asProfileRecord(user: User): Record<string, unknown> {
+  return { id: user.id, name: user.name, email: user.email, phone: user.phone, avatar: user.avatar, wilaya_code: user.wilayaCode, municipality: user.municipality, rating: user.rating, reviews_count: user.reviewsCount, is_verified: user.isVerified, is_bookstore: user.isBookstore, bookstore_name: user.bookstoreName, joined_date: user.joinedDate, bio: user.bio, role: user.role };
 }
 
 export class StorageService {
@@ -60,8 +28,8 @@ export class StorageService {
   private static currentUid: string | null = null;
   private static listingsSnapshot: BookListing[] = [];
 
-  static setAuthUser(firebaseUser: Pick<FirebaseUser, 'uid'> | null, profile: User | null) {
-    this.currentUid = firebaseUser?.uid ?? null;
+  static setAuthUser(userId: string | null, profile: User | null) {
+    this.currentUid = userId;
     this.currentUser = profile;
   }
 
@@ -69,123 +37,49 @@ export class StorageService {
     return this.currentUser;
   }
 
-  static async getOrCreateUserProfile(firebaseUser: FirebaseUser): Promise<User> {
-    if (!firestoreReady() || !db) throw new Error('Firebase غير مهيأ.');
-    const userRef = doc(db, 'users', firebaseUser.uid);
-    let snapshot;
-    let lastError: unknown;
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      try {
-        snapshot = await getDoc(userRef);
-        break;
-      } catch (error) {
-        lastError = error;
-        if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 450 * (attempt + 1)));
-      }
-    }
-    if (!snapshot) throw lastError || new Error('تعذر قراءة ملف المستخدم من Firestore.');
-    const stored = snapshot.exists() ? snapshot.data() : {};
-    const defaults: User = {
-      id: firebaseUser.uid,
-      name: firebaseUser.displayName || 'مستخدم كتابي',
-      email: firebaseUser.email || '',
-      phone: firebaseUser.phoneNumber || '',
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.email || firebaseUser.uid)}&background=0b192c&color=fff`,
-      wilayaCode: 16,
-      municipality: 'الجزائر الوسطى',
-      rating: 5,
-      reviewsCount: 0,
-      isVerified: true,
-      isBookstore: false,
-      joinedDate: new Date().toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long' }),
-      bio: '',
-      role: 'user',
-    };
-
-    if (snapshot.exists()) {
-      const profile = { ...defaults, ...stored, id: firebaseUser.uid, email: String(stored.email || defaults.email) } as User;
-      this.currentUser = profile;
-      return profile;
-    }
-
-    const profile: User = {
-      id: firebaseUser.uid,
-      name: firebaseUser.displayName || 'مستخدم كتابي',
-      email: firebaseUser.email || '',
-      phone: firebaseUser.phoneNumber || '',
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.phoneNumber || 'K')}&background=0b192c&color=fff`,
-      wilayaCode: 16,
-      municipality: 'الجزائر الوسطى',
-      rating: 5,
-      reviewsCount: 0,
-      isVerified: true,
-      isBookstore: false,
-      joinedDate: new Date().toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long' }),
-      bio: '',
-      role: 'user',
-    };
-    await setDoc(userRef, profile);
-    this.currentUser = profile;
-    return profile;
-  }
-
   static async updateUserProfile(user: User) {
-    if (isSupabaseConfigured) {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user || authData.user.id !== user.id) throw new Error('لا تملك صلاحية تعديل هذا الملف الشخصي.');
-      const { error } = await supabase.from('profiles').update({
-        name: user.name.trim(),
-        phone: user.phone.trim(),
-        whatsapp: user.whatsapp?.trim() || null,
-        municipality: user.municipality.trim(),
-        bio: user.bio?.trim() || null,
-      }).eq('id', authData.user.id);
-      if (error) throw new Error(`تعذر حفظ معلومات الملف الشخصي (${error.code || 'Supabase'}): ${error.message}`);
-      this.currentUser = user;
-      return;
-    }
-    if (!firestoreReady() || !db || !this.currentUid) return;
-    await setDoc(doc(db, 'users', this.currentUid), asRecord(user), { merge: true });
+    if (!isSupabaseConfigured || !this.currentUid || this.currentUid !== user.id) throw new Error('يجب تسجيل الدخول لتعديل هذا الملف الشخصي.');
+    const { error } = await supabase.from('profiles').update({
+      name: user.name.trim(),
+      phone: user.phone.trim(),
+      whatsapp: user.whatsapp?.trim() || null,
+      municipality: user.municipality.trim(),
+      bio: user.bio?.trim() || null,
+    }).eq('id', this.currentUid);
+    if (error) throw new Error(`تعذر حفظ معلومات الملف الشخصي (${error.code || 'Supabase'}): ${error.message}`);
     this.currentUser = user;
   }
 
   static async updateListing(listing: BookListing): Promise<BookListing> {
-    const { data: authData } = isSupabaseConfigured ? await supabase.auth.getUser() : { data: { user: null } };
-    const sellerId = authData.user?.id || this.currentUser?.id || this.currentUid;
-    if (isSupabaseConfigured && sellerId) {
-      const nextStatus = listing.status === 'active' ? 'pending' : listing.status;
-      const row = {
-        title: listing.title,
-        author: listing.author || null,
-        publisher: listing.publisher || null,
-        publication_year: listing.year || null,
-        level: listing.level,
-        grade: listing.grade,
-        grade_code: listing.gradeCode,
-        stream: listing.stream || null,
-        subject: listing.subject,
-        condition: listing.condition,
-        deal_type: listing.dealType,
-        price: listing.price,
-        original_price: listing.originalPrice || null,
-        exchange_for: listing.exchangeFor || null,
-        description: listing.description,
-        updated_at: new Date().toISOString(),
-        status: nextStatus,
-        reviewed_at: null,
-        reviewed_by: null,
-        moderation_note: listing.status === 'active' ? 'تم تعديل الإعلان ويحتاج إلى مراجعة جديدة.' : listing.moderationNote || null,
-      };
-      const { error } = await supabase.from('listings').update(row).eq('id', listing.id).eq('seller_id', sellerId);
-      if (error) throw error;
-      const updated = { ...listing, status: nextStatus, moderationNote: row.moderation_note || undefined };
-      this.listingsSnapshot = this.listingsSnapshot.map((item) => item.id === listing.id ? updated : item);
-      return updated;
-    }
-    if (!firestoreReady() || !db || !sellerId) throw new Error('يجب تسجيل الدخول قبل تعديل الإعلان.');
-    await updateDoc(doc(db, 'listings', listing.id), { ...asRecord(listing), updatedAt: formatNow() });
-    this.listingsSnapshot = this.listingsSnapshot.map((item) => item.id === listing.id ? listing : item);
-    return listing;
+    if (!isSupabaseConfigured || !this.currentUid) throw new Error('يجب تسجيل الدخول قبل تعديل الإعلان.');
+    const nextStatus = listing.status === 'active' ? 'pending' : listing.status;
+    const row = {
+      title: listing.title.trim(),
+      author: listing.author?.trim() || null,
+      publisher: listing.publisher?.trim() || null,
+      publication_year: listing.year || null,
+      level: listing.level,
+      grade: listing.grade.trim(),
+      grade_code: listing.gradeCode.trim(),
+      stream: listing.stream?.trim() || null,
+      subject: listing.subject.trim(),
+      condition: listing.condition,
+      deal_type: listing.dealType,
+      price: listing.price,
+      original_price: listing.originalPrice || null,
+      exchange_for: listing.exchangeFor?.trim() || null,
+      description: listing.description.trim(),
+      updated_at: new Date().toISOString(),
+      status: nextStatus,
+      reviewed_at: null,
+      reviewed_by: null,
+      moderation_note: listing.status === 'active' ? 'تم تعديل الإعلان ويحتاج إلى مراجعة جديدة.' : listing.moderationNote || null,
+    };
+    const { error } = await supabase.from('listings').update(row).eq('id', listing.id).eq('seller_id', this.currentUid);
+    if (error) throw error;
+    const updated = { ...listing, status: nextStatus, moderationNote: row.moderation_note || undefined };
+    this.listingsSnapshot = this.listingsSnapshot.map((item) => item.id === listing.id ? updated : item);
+    return updated;
   }
 
   private static mapSupabaseUser(row: Record<string, unknown>): User {
@@ -223,32 +117,28 @@ export class StorageService {
   }
 
   static async getListings(): Promise<BookListing[]> {
-    if (isSupabaseConfigured) {
-      try {
-        const listingsQuery = supabase.from('listings').select('*').order('created_at', { ascending: false });
-        const viewerId = this.currentUser?.id || this.currentUid;
-        const { data, error } = viewerId ? await listingsQuery.or(`status.eq.active,seller_id.eq.${viewerId}`) : await listingsQuery.eq('status', 'active');
-        if (!error && data) {
-          const sellerIds = [...new Set(data.map((row) => String((row as Record<string, unknown>).seller_id || '')).filter(Boolean))];
-          const { data: sellers } = sellerIds.length ? await supabase.from('profiles').select('*').in('id', sellerIds) : { data: [] };
-          const sellerById = new Map((sellers || []).map((seller) => [String(seller.id), seller]));
-          const listings = data.map((row) => {
-            const record = row as Record<string, unknown>;
-            return this.mapSupabaseListing({ ...record, seller: sellerById.get(String(record.seller_id || '')) || {} });
-          });
-          this.listingsSnapshot = listings;
-          return listings;
-        }
-      } catch (error) { console.warn('Supabase listings read failed', error); }
-    }
-    if (isSupabaseConfigured) { this.listingsSnapshot = []; return []; }
-    if (!firestoreReady() || !db) { this.listingsSnapshot = []; return []; }
+    if (!isSupabaseConfigured) { this.listingsSnapshot = []; return []; }
     try {
-      const snapshot = await getDocs(collection(db, 'listings'));
-      const listings = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as BookListing);
+      const listingsQuery = supabase.from('listings').select('*').order('created_at', { ascending: false });
+      const viewerId = this.currentUser?.id || this.currentUid;
+      const { data, error } = viewerId ? await listingsQuery.or(`status.eq.active,seller_id.eq.${viewerId}`) : await listingsQuery.eq('status', 'active');
+      if (error) throw error;
+      const rows = data || [];
+      const sellerIds = [...new Set(rows.map((row) => String((row as Record<string, unknown>).seller_id || '')).filter(Boolean))];
+      const { data: sellers, error: sellersError } = sellerIds.length ? await supabase.from('profiles').select('*').in('id', sellerIds) : { data: [], error: null };
+      if (sellersError) throw sellersError;
+      const sellerById = new Map((sellers || []).map((seller) => [String(seller.id), seller]));
+      const listings = rows.map((row) => {
+        const record = row as Record<string, unknown>;
+        return this.mapSupabaseListing({ ...record, seller: sellerById.get(String(record.seller_id || '')) || {} });
+      });
       this.listingsSnapshot = listings;
       return listings;
-    } catch (error) { console.error('Firestore listings read failed', error); this.listingsSnapshot = []; return []; }
+    } catch (error) {
+      console.warn('Supabase listings read failed', error);
+      this.listingsSnapshot = [];
+      return [];
+    }
   }
   private static mapSupabaseListing(row: Record<string, unknown>): BookListing {
     const sellerRow = (row.seller || {}) as Record<string, unknown>;
@@ -266,103 +156,63 @@ export class StorageService {
   }
 
   static async saveListing(listing: BookListing): Promise<BookListing> {
-    const { data: authData } = isSupabaseConfigured ? await supabase.auth.getUser() : { data: { user: null } };
-    const sellerId = authData.user?.id || this.currentUser?.id || this.currentUid;
-    if (isSupabaseConfigured && sellerId) {
-      const row = { id: listing.id, seller_id: sellerId, title: listing.title, author: listing.author || null, publisher: listing.publisher || null, publication_year: listing.year || null, level: listing.level, grade: listing.grade, grade_code: listing.gradeCode, stream: listing.stream || null, subject: listing.subject, condition: listing.condition, deal_type: listing.dealType, price: listing.price, original_price: listing.originalPrice || null, exchange_for: listing.exchangeFor || null, description: listing.description, photos: listing.photos, wilaya_code: listing.wilayaCode, wilaya_name_ar: listing.wilayaNameAr, wilaya_name_fr: listing.wilayaNameFr, municipality: listing.municipality, delivery_available: listing.deliveryAvailable, hand_delivery_only: listing.handDeliveryOnly, has_pencil_marks: Boolean(listing.hasPencilMarks), has_answers_included: Boolean(listing.hasAnswersIncluded), includes_cd: Boolean(listing.includesCD), views: listing.views, favorites_count: listing.favoritesCount, is_featured: Boolean(listing.isFeatured), status: 'pending' };
-      const { data: inserted, error } = await supabase.from('listings').insert(row).select('id').single();
-      if (!error && inserted) { this.listingsSnapshot = [{ ...listing, id: String(inserted.id), sellerId }, ...this.listingsSnapshot.filter((item) => item.id !== listing.id)]; return { ...listing, id: String(inserted.id), sellerId }; }
-      if (error?.code === '42501') throw new Error(`رفضت سياسة RLS نشر الإعلان. UID الجلسة: ${sellerId}. تأكد أن سياسة INSERT تستخدم seller_id = auth.uid().`);
+    if (!isSupabaseConfigured || !this.currentUid) throw new Error('يجب تسجيل الدخول قبل نشر إعلان.');
+    const sellerId = this.currentUid;
+    const row = { id: listing.id, seller_id: sellerId, title: listing.title.trim(), author: listing.author?.trim() || null, publisher: listing.publisher?.trim() || null, publication_year: listing.year || null, level: listing.level, grade: listing.grade.trim(), grade_code: listing.gradeCode.trim(), stream: listing.stream?.trim() || null, subject: listing.subject.trim(), condition: listing.condition, deal_type: listing.dealType, price: listing.price, original_price: listing.originalPrice || null, exchange_for: listing.exchangeFor?.trim() || null, description: listing.description.trim(), photos: listing.photos, wilaya_code: listing.wilayaCode, wilaya_name_ar: listing.wilayaNameAr, wilaya_name_fr: listing.wilayaNameFr, municipality: listing.municipality, delivery_available: listing.deliveryAvailable, hand_delivery_only: listing.handDeliveryOnly, has_pencil_marks: Boolean(listing.hasPencilMarks), has_answers_included: Boolean(listing.hasAnswersIncluded), includes_cd: Boolean(listing.includesCD), views: 0, favorites_count: 0, is_featured: false, status: 'pending' as const };
+    const { data: inserted, error } = await supabase.from('listings').insert(row).select('id').single();
+    if (error || !inserted) {
+      if (error?.code === '42501') throw new Error(`رفضت سياسة RLS نشر الإعلان. UID الجلسة: ${sellerId}.`);
       throw error || new Error('تعذر حفظ الإعلان في Supabase.');
     }
-    if (!firestoreReady() || !db || !sellerId) throw new Error('يجب تسجيل الدخول قبل نشر إعلان.');
-    await setDoc(doc(db, 'listings', listing.id), { ...asRecord(listing), sellerId, updatedAt: formatNow() });
-    this.listingsSnapshot = [listing, ...this.listingsSnapshot.filter((item) => item.id !== listing.id)]; return listing;
+    const saved = { ...listing, id: String(inserted.id), sellerId, status: 'pending' as const, views: 0, favoritesCount: 0, isFeatured: false };
+    this.listingsSnapshot = [saved, ...this.listingsSnapshot.filter((item) => item.id !== listing.id)];
+    return saved;
   }
 
   static async deleteListing(id: string): Promise<boolean> {
-    if (isSupabaseConfigured) {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) return false;
-      const { error } = await supabase.from('listings').delete().eq('id', id).eq('seller_id', authData.user.id);
-      if (error) throw error;
-      this.listingsSnapshot = this.listingsSnapshot.filter((listing) => listing.id !== id);
-      return true;
-    }
-    if (!firestoreReady() || !db || !this.currentUid) return false;
-    await deleteDoc(doc(db, 'listings', id));
+    if (!isSupabaseConfigured || !this.currentUid) return false;
+    const { error } = await supabase.from('listings').delete().eq('id', id).eq('seller_id', this.currentUid);
+    if (error) throw error;
     this.listingsSnapshot = this.listingsSnapshot.filter((listing) => listing.id !== id);
     return true;
   }
 
   static async markListingStatus(id: string, status: BookListing['status']): Promise<boolean> {
-    if (isSupabaseConfigured) {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) return false;
-      const { error } = await supabase.from('listings').update({ status, updated_at: new Date().toISOString() }).eq('id', id).eq('seller_id', authData.user.id);
-      if (error) throw error;
-      this.listingsSnapshot = this.listingsSnapshot.map((listing) => (listing.id === id ? { ...listing, status } : listing));
-      return true;
-    }
-    if (!firestoreReady() || !db || !this.currentUid) return false;
-    await updateDoc(doc(db, 'listings', id), { status, updatedAt: formatNow() });
+    if (!isSupabaseConfigured || !this.currentUid) return false;
+    const { error } = await supabase.from('listings').update({ status, updated_at: new Date().toISOString() }).eq('id', id).eq('seller_id', this.currentUid);
+    if (error) throw error;
     this.listingsSnapshot = this.listingsSnapshot.map((listing) => (listing.id === id ? { ...listing, status } : listing));
     return true;
   }
 
   static async incrementView(id: string) {
-    if (isSupabaseConfigured) {
-      const { error } = await supabase.rpc('increment_listing_views', { p_listing_id: id });
-      if (error) console.warn('Supabase view increment failed', error);
-      return;
-    }
-    if (!firestoreReady() || !db) return;
-    await updateDoc(doc(db, 'listings', id), { views: increment(1) });
+    if (!isSupabaseConfigured) return;
+    const { error } = await supabase.rpc('increment_listing_views', { p_listing_id: id });
+    if (error) console.warn('Supabase view increment failed', error);
   }
 
   static async uploadBookImage(file: File, listingId: string): Promise<string> {
     const ownerId = this.currentUser?.id || this.currentUid;
-    if (isSupabaseConfigured && ownerId) {
-      const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
-      if (!allowedTypes.has(file.type)) throw new Error('يسمح فقط بصور JPG أو PNG أو WebP.');
-      if (file.size > 5 * 1024 * 1024) throw new Error('حجم الصورة الأقصى هو 5 ميغابايت.');
-      const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
-      const path = `${ownerId}/${listingId}-${crypto.randomUUID()}.${extension}`;
-      const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
-      if (error) throw error;
-      const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
-      return data.publicUrl;
-    }
-    if (!firebaseReady() || !storage || !ownerId) throw new Error('يجب تسجيل الدخول لرفع الصور.');
-    if (!file.type.startsWith('image/')) throw new Error('يسمح برفع الصور فقط.');
+    if (!isSupabaseConfigured || !ownerId) throw new Error('يجب تسجيل الدخول لرفع الصور.');
+    const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    if (!allowedTypes.has(file.type)) throw new Error('يسمح فقط بصور JPG أو PNG أو WebP.');
     if (file.size > 5 * 1024 * 1024) throw new Error('حجم الصورة الأقصى هو 5 ميغابايت.');
-    const extension = file.name.split('.').pop() || 'jpg';
-    const imageRef = ref(storage, `book-covers/${ownerId}/${listingId}-${crypto.randomUUID()}.${extension}`);
-    await uploadBytes(imageRef, file, { contentType: file.type, customMetadata: { ownerId } });
-    return getDownloadURL(imageRef);
+    const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = `${ownerId}/${listingId}-${crypto.randomUUID()}.${extension}`;
+    const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+    if (error) throw error;
+    const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
+    return data.publicUrl;
   }
 
   static async deleteBookImage(url: string) {
-    if (isSupabaseConfigured) {
-      try {
-        const marker = `/storage/v1/object/public/${SUPABASE_BUCKET}/`;
-        const markerIndex = url.indexOf(marker);
-        if (markerIndex >= 0) {
-          const path = decodeURIComponent(url.slice(markerIndex + marker.length));
-          const { error } = await supabase.storage.from(SUPABASE_BUCKET).remove([path]);
-          if (error) console.warn('Supabase image delete skipped', error);
-        }
-      } catch (error) {
-        console.warn('Supabase image delete skipped', error);
-      }
-      return;
-    }
-    if (!firebaseReady() || !storage) return;
-    try {
-      await deleteObject(ref(storage, url));
-    } catch (error) {
-      console.warn('Storage image delete skipped', error);
-    }
+    if (!isSupabaseConfigured) return;
+    const marker = `/storage/v1/object/public/${SUPABASE_BUCKET}/`;
+    const markerIndex = url.indexOf(marker);
+    if (markerIndex < 0) return;
+    const path = decodeURIComponent(url.slice(markerIndex + marker.length));
+    const { error } = await supabase.storage.from(SUPABASE_BUCKET).remove([path]);
+    if (error) console.warn('Supabase image delete skipped', error);
   }
 
   static async getFavorites(): Promise<string[]> {
@@ -386,85 +236,181 @@ export class StorageService {
     return true;
   }
 
+  private static mapExchangeRequest(row: Record<string, unknown>, requester: Record<string, unknown>, target: Record<string, unknown>, offered: Record<string, unknown> | undefined): ExchangeRequest {
+    const targetTitle = String(target.title || row.target_book_title || '');
+    return {
+      id: String(row.id),
+      requesterId: String(row.requester_id),
+      requesterName: String(requester.name || 'مستخدم كتابي'),
+      requesterAvatar: String(requester.avatar || ''),
+      requesterPhone: String(requester.phone || ''),
+      targetListingId: String(row.target_listing_id),
+      targetBookTitle: targetTitle,
+      ownerId: String(row.owner_id),
+      offeredListingId: row.offered_listing_id ? String(row.offered_listing_id) : undefined,
+      offeredBookTitle: String(offered?.title || row.offered_book_title || ''),
+      offeredBookPhoto: Array.isArray(offered?.photos) ? String(offered?.photos[0] || '') : undefined,
+      message: String(row.message || ''),
+      wilayaNameAr: String(row.wilaya_name_ar || ''),
+      municipality: String(row.municipality || ''),
+      status: String(row.status || 'pending') as ExchangeRequest['status'],
+      createdAt: String(row.created_at || ''),
+    };
+  }
+
   static async getExchangeRequests(): Promise<ExchangeRequest[]> {
-    if (!firestoreReady() || !db || !this.currentUid) return [];
-    const requesterQuery = query(collection(db, 'exchangeRequests'), where('requesterId', '==', this.currentUid));
-    const sellerQuery = query(collection(db, 'exchangeRequests'), where('ownerId', '==', this.currentUid));
-    const [requesterSnapshot, sellerSnapshot] = await Promise.all([getDocs(requesterQuery), getDocs(sellerQuery)]);
-    const byId = new Map<string, ExchangeRequest>();
-    [...requesterSnapshot.docs, ...sellerSnapshot.docs].forEach((item) => byId.set(item.id, { id: item.id, ...item.data() } as ExchangeRequest));
-    return [...byId.values()].sort((a, b) => b.id.localeCompare(a.id));
+    if (!isSupabaseConfigured || !this.currentUid) return [];
+    const { data: rows, error } = await supabase.from('exchange_requests').select('*').or(`requester_id.eq.${this.currentUid},owner_id.eq.${this.currentUid}`).order('created_at', { ascending: false }).limit(100);
+    if (error) throw error;
+    const requests = rows || [];
+    if (!requests.length) return [];
+    const profileIds = [...new Set(requests.flatMap((row) => [String(row.requester_id), String(row.owner_id)]))];
+    const listingIds = [...new Set(requests.flatMap((row) => [String(row.target_listing_id), row.offered_listing_id ? String(row.offered_listing_id) : '']).filter(Boolean))];
+    const [{ data: profiles, error: profilesError }, { data: listings, error: listingsError }] = await Promise.all([
+      supabase.from('profiles').select('*').in('id', profileIds),
+      supabase.from('listings').select('id,title,photos').in('id', listingIds),
+    ]);
+    if (profilesError) throw profilesError;
+    if (listingsError) throw listingsError;
+    const profileById = new Map((profiles || []).map((row) => [String(row.id), row as Record<string, unknown>]));
+    const listingById = new Map((listings || []).map((row) => [String(row.id), row as Record<string, unknown>]));
+    return requests.map((row) => this.mapExchangeRequest(row as Record<string, unknown>, profileById.get(String(row.requester_id)) || {}, listingById.get(String(row.target_listing_id)) || {}, row.offered_listing_id ? listingById.get(String(row.offered_listing_id)) : undefined));
   }
 
   static async sendExchangeRequest(req: Omit<ExchangeRequest, 'id' | 'createdAt' | 'status'>): Promise<ExchangeRequest> {
-    if (!firestoreReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال طلب تبادل.');
-    const requestRef = doc(collection(db, 'exchangeRequests'));
-    const newRequest: ExchangeRequest = { ...req, id: requestRef.id, requesterId: this.currentUid, status: 'pending', createdAt: formatNow() };
-    await setDoc(requestRef, asRecord(newRequest));
-    return newRequest;
+    if (!isSupabaseConfigured || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال طلب تبادل.');
+    const { data: target, error: targetError } = await supabase.from('listings').select('id,title,seller_id,status').eq('id', req.targetListingId).maybeSingle();
+    if (targetError) throw targetError;
+    if (!target || target.status !== 'active') throw new Error('هذا الكتاب لم يعد متاحًا للتبادل.');
+    const offeredListingId = req.offeredListingId || null;
+    let offered: Record<string, unknown> | undefined;
+    if (offeredListingId) {
+      const { data, error } = await supabase.from('listings').select('id,title,photos,seller_id,status').eq('id', offeredListingId).eq('seller_id', this.currentUid).maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('الكتاب المقترح غير موجود ضمن إعلاناتك.');
+      offered = data as Record<string, unknown>;
+    }
+    const insertRow = {
+      requester_id: this.currentUid,
+      target_listing_id: String(target.id),
+      owner_id: String(target.seller_id),
+      offered_listing_id: offered ? String(offered.id) : null,
+      offered_book_title: String(offered?.title || req.offeredBookTitle || '').trim(),
+      message: String(req.message || '').trim().slice(0, 2000),
+      wilaya_name_ar: String(this.currentUser?.municipality || req.wilayaNameAr || '').trim(),
+      municipality: String(this.currentUser?.municipality || req.municipality || '').trim(),
+      status: 'pending',
+    };
+    const { data: inserted, error } = await supabase.from('exchange_requests').insert(insertRow).select('*').single();
+    if (error || !inserted) throw error || new Error('تعذر إرسال طلب التبادل.');
+    return this.mapExchangeRequest(inserted as Record<string, unknown>, this.currentUser ? asProfileRecord(this.currentUser) : {}, target as Record<string, unknown>, offered);
   }
 
   static async updateExchangeRequestStatus(id: string, status: ExchangeRequest['status']): Promise<boolean> {
-    if (!firestoreReady() || !db || !this.currentUid) return false;
-    await updateDoc(doc(db, 'exchangeRequests', id), { status, updatedAt: formatNow() });
+    if (!isSupabaseConfigured || !this.currentUid || !['accepted', 'rejected', 'completed'].includes(status)) return false;
+    const { error } = await supabase.from('exchange_requests').update({ status }).eq('id', id).or(`requester_id.eq.${this.currentUid},owner_id.eq.${this.currentUid}`);
+    if (error) throw error;
     return true;
   }
 
   static async getChats(): Promise<ChatConversation[]> {
-    if (!firestoreReady() || !db || !this.currentUid) return [];
-    const chatsQuery = query(collection(db, 'chats'), where('participantIds', 'array-contains', this.currentUid), limit(50));
-    const snapshot = await getDocs(chatsQuery);
-    const conversations = snapshot.docs.map((item) => {
-      const data = item.data() as Omit<ChatConversation, 'messages'> & { participantIds: string[]; messages?: ChatMessage[] };
-      return { id: item.id, ...data, messages: data.messages || [] } as ChatConversation;
+    if (!isSupabaseConfigured || !this.currentUid) return [];
+    const { data: chatRows, error: chatsError } = await supabase.from('chats').select('*').contains('participant_ids', [this.currentUid]).order('last_message_time', { ascending: false }).limit(50);
+    if (chatsError) throw chatsError;
+    const chats = chatRows || [];
+    if (!chats.length) return [];
+    const chatIds = chats.map((row) => String(row.id));
+    const participantIds = [...new Set(chats.flatMap((row) => (Array.isArray(row.participant_ids) ? row.participant_ids : []).map(String)))];
+    const listingIds = [...new Set(chats.map((row) => row.listing_id ? String(row.listing_id) : '').filter(Boolean))];
+    const [{ data: messageRows, error: messagesError }, { data: profiles, error: profilesError }, { data: listings, error: listingsError }] = await Promise.all([
+      supabase.from('messages').select('*').in('chat_id', chatIds).order('created_at', { ascending: true }),
+      supabase.from('profiles').select('*').in('id', participantIds),
+      listingIds.length ? supabase.from('listings').select('id,title,photos,price,deal_type').in('id', listingIds) : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (messagesError) throw messagesError;
+    if (profilesError) throw profilesError;
+    if (listingsError) throw listingsError;
+    const profileById = new Map((profiles || []).map((row) => [String(row.id), row as Record<string, unknown>]));
+    const listingById = new Map((listings || []).map((row) => [String(row.id), row as Record<string, unknown>]));
+    const messagesByChat = new Map<string, ChatMessage[]>();
+    for (const row of messageRows || []) {
+      const message: ChatMessage = { id: String(row.id), senderId: String(row.sender_id), receiverId: String(row.receiver_id), listingId: row.listing_id ? String(row.listing_id) : undefined, text: String(row.text || ''), timestamp: String(row.created_at || ''), isRead: Boolean(row.is_read) };
+      const list = messagesByChat.get(String(row.chat_id)) || [];
+      list.push(message);
+      messagesByChat.set(String(row.chat_id), list);
+    }
+    return chats.map((row) => {
+      const ids = Array.isArray(row.participant_ids) ? row.participant_ids.map(String) : [];
+      const otherId = ids.find((id) => id !== this.currentUid) || this.currentUid;
+      const participant = this.mapSupabaseUser(profileById.get(otherId) || { id: otherId });
+      const listing = row.listing_id ? listingById.get(String(row.listing_id)) : undefined;
+      return { id: String(row.id), listingId: row.listing_id ? String(row.listing_id) : undefined, listingTitle: listing?.title ? String(listing.title) : undefined, listingPhoto: Array.isArray(listing?.photos) ? String(listing.photos[0] || '') : undefined, listingPrice: listing?.price !== undefined ? Number(listing.price) : undefined, dealType: listing?.deal_type as BookListing['dealType'] | undefined, participant, lastMessage: String(row.last_message || ''), lastMessageTime: String(row.last_message_time || ''), unreadCount: (messagesByChat.get(String(row.id)) || []).filter((message) => message.receiverId === this.currentUid && !message.isRead).length, messages: messagesByChat.get(String(row.id)) || [] };
     });
-    return conversations.sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
   }
 
-  static async sendMessage(conversationId: string, text: string, senderUser: User, receiverUser: User, listing?: BookListing): Promise<ChatConversation> {
-    if (!firestoreReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال رسالة.');
-    const conversationRef = doc(db, 'chats', conversationId);
-    const timestamp = formatNow();
-    const messageId = `${this.currentUid}-${Date.now()}`;
-    const newMessage: ChatMessage = { id: messageId, senderId: senderUser.id, receiverId: receiverUser.id, listingId: listing?.id, text: text.trim(), timestamp, isRead: false };
-    const conversation: Omit<ChatConversation, 'messages'> & { participantIds: string[] } = {
-      id: conversationId,
-      participantIds: [senderUser.id, receiverUser.id],
-      listingId: listing?.id,
-      listingTitle: listing?.title,
-      listingPhoto: listing?.photos?.[0],
-      listingPrice: listing?.price,
-      dealType: listing?.dealType,
-      participant: receiverUser,
-      lastMessage: newMessage.text,
-      lastMessageTime: timestamp,
-      unreadCount: 0,
-    };
-    await setDoc(conversationRef, { ...asRecord(conversation), messages: arrayUnion(asRecord(newMessage)) }, { merge: true });
-    return { ...conversation, messages: [newMessage] } as ChatConversation;
+  static async sendMessage(_conversationId: string, text: string, _senderUser: User, receiverUser: User, listing?: BookListing): Promise<ChatConversation> {
+    if (!isSupabaseConfigured || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال رسالة.');
+    const messageText = text.trim().slice(0, 2000);
+    if (!messageText) throw new Error('لا يمكن إرسال رسالة فارغة.');
+    if (!receiverUser.id || receiverUser.id === this.currentUid) throw new Error('المستلم غير صالح.');
+    const { data: existingRows, error: existingError } = await supabase.from('chats').select('*').contains('participant_ids', [this.currentUid, receiverUser.id]).order('last_message_time', { ascending: false }).limit(1);
+    if (existingError) throw existingError;
+    let chat = existingRows?.[0] as Record<string, unknown> | undefined;
+    const timestamp = new Date().toISOString();
+    if (!chat) {
+      const { data: created, error } = await supabase.from('chats').insert({ listing_id: listing?.id || null, participant_ids: [this.currentUid, receiverUser.id], last_message: messageText, last_message_time: timestamp }).select('*').single();
+      if (error || !created) throw error || new Error('تعذر إنشاء المحادثة.');
+      chat = created as Record<string, unknown>;
+    }
+    const { data: insertedMessage, error: messageError } = await supabase.from('messages').insert({ chat_id: String(chat.id), sender_id: this.currentUid, receiver_id: receiverUser.id, listing_id: listing?.id || (chat.listing_id ? String(chat.listing_id) : null), text: messageText, is_read: false }).select('*').single();
+    if (messageError || !insertedMessage) throw messageError || new Error('تعذر إرسال الرسالة.');
+    const { error: updateError } = await supabase.from('chats').update({ last_message: messageText, last_message_time: timestamp }).eq('id', String(chat.id));
+    if (updateError) throw updateError;
+    const message: ChatMessage = { id: String(insertedMessage.id), senderId: this.currentUid, receiverId: receiverUser.id, listingId: insertedMessage.listing_id ? String(insertedMessage.listing_id) : undefined, text: messageText, timestamp: String(insertedMessage.created_at || timestamp), isRead: false };
+    return { id: String(chat.id), listingId: listing?.id || (chat.listing_id ? String(chat.listing_id) : undefined), listingTitle: listing?.title, listingPhoto: listing?.photos?.[0], listingPrice: listing?.price, dealType: listing?.dealType, participant: receiverUser, lastMessage: messageText, lastMessageTime: timestamp, unreadCount: 0, messages: [message] };
+  }
+
+  private static mapReport(row: Record<string, unknown>, listing: Record<string, unknown>, reporter: Record<string, unknown>): ReportItem {
+    const labels: Record<string, string> = { wrong_info: 'معلومات خاطئة', prohibited_item: 'محتوى ممنوع', offensive: 'محتوى مسيء', fake_account: 'حساب وهمي', sold_already: 'تم البيع مسبقًا', other: 'سبب آخر' };
+    const reason = String(row.reason || 'other') as ReportItem['reason'];
+    return { id: String(row.id), listingId: String(row.listing_id), listingTitle: String(listing.title || ''), sellerName: String(listing.seller_name || ''), reporterName: String(reporter.name || 'مستخدم كتابي'), reason, reasonLabel: labels[reason] || labels.other, details: String(row.details || ''), status: String(row.status || 'pending') as ReportItem['status'], createdAt: String(row.created_at || ''), reporterId: row.reporter_id ? String(row.reporter_id) : undefined };
   }
 
   static async getReports(): Promise<ReportItem[]> {
-    if (!firestoreReady() || !db || !this.currentUid) return [];
-    try {
-      const snapshot = await getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(100)));
-      return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as ReportItem);
-    } catch {
-      return [];
-    }
+    if (!isSupabaseConfigured || !this.currentUid) return [];
+    const { data: rows, error } = await supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(100);
+    if (error) throw error;
+    const reports = rows || [];
+    if (!reports.length) return [];
+    const listingIds = [...new Set(reports.map((row) => String(row.listing_id)))];
+    const reporterIds = [...new Set(reports.map((row) => String(row.reporter_id)))];
+    const [{ data: listings, error: listingsError }, { data: reporters, error: reportersError }] = await Promise.all([
+      supabase.from('listings').select('id,title,seller_id').in('id', listingIds),
+      supabase.from('profiles').select('id,name').in('id', reporterIds),
+    ]);
+    if (listingsError) throw listingsError;
+    if (reportersError) throw reportersError;
+    const listingById = new Map((listings || []).map((row) => [String(row.id), row as Record<string, unknown>]));
+    const reporterById = new Map((reporters || []).map((row) => [String(row.id), row as Record<string, unknown>]));
+    return reports.map((row) => this.mapReport(row as Record<string, unknown>, listingById.get(String(row.listing_id)) || {}, reporterById.get(String(row.reporter_id)) || {}));
   }
 
   static async submitReport(report: Omit<ReportItem, 'id' | 'status' | 'createdAt'>): Promise<ReportItem> {
-    if (!firestoreReady() || !db || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال بلاغ.');
-    const reportRef = doc(collection(db, 'reports'));
-    const newReport: ReportItem = { ...report, id: reportRef.id, reporterId: this.currentUid, status: 'pending', createdAt: formatNow() } as ReportItem;
-    await setDoc(reportRef, asRecord(newReport));
-    return newReport;
+    if (!isSupabaseConfigured || !this.currentUid) throw new Error('يجب تسجيل الدخول لإرسال بلاغ.');
+    const validReasons = new Set<ReportItem['reason']>(['wrong_info', 'prohibited_item', 'offensive', 'fake_account', 'sold_already', 'other']);
+    if (!validReasons.has(report.reason)) throw new Error('سبب البلاغ غير صالح.');
+    const { data: listing, error: listingError } = await supabase.from('listings').select('id,title,seller_id').eq('id', report.listingId).maybeSingle();
+    if (listingError) throw listingError;
+    if (!listing) throw new Error('الإعلان غير موجود.');
+    const { data: inserted, error } = await supabase.from('reports').insert({ listing_id: String(listing.id), reporter_id: this.currentUid, reason: report.reason, details: String(report.details || '').trim().slice(0, 2000), status: 'pending' }).select('*').single();
+    if (error || !inserted) throw error || new Error('تعذر إرسال البلاغ.');
+    return this.mapReport(inserted as Record<string, unknown>, listing as Record<string, unknown>, this.currentUser ? asProfileRecord(this.currentUser) : {});
   }
 
   static async resolveReport(id: string, action: 'resolved' | 'dismissed'): Promise<boolean> {
-    if (!firestoreReady() || !db || !this.currentUid) return false;
-    await updateDoc(doc(db, 'reports', id), { status: action, resolvedAt: formatNow(), resolvedBy: this.currentUid });
+    if (!isSupabaseConfigured || !this.currentUid) return false;
+    const { error } = await supabase.from('reports').update({ status: action }).eq('id', id);
+    if (error) throw error;
     return true;
   }
 

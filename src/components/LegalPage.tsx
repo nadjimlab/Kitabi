@@ -28,9 +28,9 @@ export const LegalPage: React.FC<LegalPageProps> = ({ type, onBack, lang }) => {
 
         {isPrivacy ? (
           <>
-            <section><h2 className="text-lg font-black text-slate-900 font-serif mb-2">1. البيانات التي نجمعها</h2><p>عند تسجيل الدخول برقم الهاتف، تحفظ Kitabi معرّف Firebase UID ورقم الهاتف وبعض بيانات الملف الشخصي التي يضيفها المستخدم. كما تحفظ بيانات الإعلانات والمحادثات وطلبات التبادل والبلاغات اللازمة لتشغيل الخدمة.</p></section>
+            <section><h2 className="text-lg font-black text-slate-900 font-serif mb-2">1. البيانات التي نجمعها</h2><p>عند إنشاء الحساب أو تسجيل الدخول، تحفظ Kitabi معرّف الحساب في Supabase وبعض بيانات الملف الشخصي التي يضيفها المستخدم. كما تحفظ بيانات الإعلانات والمحادثات وطلبات التبادل والبلاغات اللازمة لتشغيل الخدمة.</p></section>
             <section><h2 className="text-lg font-black text-slate-900 font-serif mb-2">2. كيف نستخدم البيانات</h2><p>تُستخدم البيانات لعرض الإعلانات، ربط المستخدمين، تشغيل المراسلة، معالجة طلبات التبادل، ومراجعة البلاغات. لا نبيع بيانات المستخدمين ولا نستخدم رقم الهاتف لإرسال رسائل تسويقية غير مطلوبة.</p></section>
-            <section><h2 className="text-lg font-black text-slate-900 font-serif mb-2">3. الصور والملفات</h2><p>تُرفع صور الكتب إلى Firebase Storage ضمن مسار محمي مرتبط بمعرّف المستخدم، مع تقييد النوع والحجم. احذف أي صورة أو إعلان لم تعد ترغب في نشره.</p></section>
+            <section><h2 className="text-lg font-black text-slate-900 font-serif mb-2">3. الصور والملفات</h2><p>تُرفع صور الكتب إلى Supabase Storage ضمن مسار مرتبط بمعرّف المستخدم، مع تقييد نوع الملف وحجمه وسياسات وصول تمنع المستخدم من إدارة ملفات غيره. احذف أي صورة أو إعلان لم تعد ترغب في نشره.</p></section>
             <section><h2 className="text-lg font-black text-slate-900 font-serif mb-2">4. حقوقك</h2><p>يمكنك طلب تصحيح بياناتك أو حذف إعلانك أو التواصل مع الإدارة بخصوص أي بلاغ أو طلب متعلق ببياناتك.</p></section>
           </>
         ) : (
