@@ -37,10 +37,9 @@ npm run dev
 ```env
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-publishable-or-anon-key
-VITE_TURNSTILE_SITE_KEY=your-cloudflare-turnstile-site-key
 ```
 
-استخدم مفتاح Supabase publishable أو anon فقط في الواجهة. لا تضع `service_role` أو أي مفتاح سري في متغير يبدأ بـ`VITE_`، ولا ترفعه إلى GitHub. `VITE_TURNSTILE_SITE_KEY` هو المفتاح العام فقط؛ أما Secret Key فيُحفظ داخل إعدادات Supabase ولا يوضع في Vercel أو الواجهة.
+استخدم مفتاح Supabase publishable أو anon فقط في الواجهة. لا تضع `service_role` أو أي مفتاح سري في متغير يبدأ بـ`VITE_`، ولا ترفعه إلى GitHub.
 
 ## إعداد Supabase
 
@@ -54,9 +53,9 @@ VITE_TURNSTILE_SITE_KEY=your-cloudflare-turnstile-site-key
 
 عند نشر إعلان جديد، يحفظه التطبيق بحالة `pending`. لا يستطيع الزائر رؤيته. يراجع المسؤول الصور والمعلومات والناشر، ثم يغيّر الحالة إلى `active` أو `flagged` مع سبب الرفض. عند تعديل إعلان فعال، يعود تلقائيًا إلى `pending` لمراجعة جديدة.
 
-## استعادة كلمة المرور والحماية من الروبوتات
+## استعادة كلمة المرور
 
-تحتوي نافذة الدخول على رابط «نسيت كلمة المرور؟». يرسل Supabase رابط الاستعادة إلى البريد الإلكتروني، وبعد فتحه يظهر نموذج تعيين كلمة مرور جديدة. لتفعيل حماية الروبوتات، أنشئ Turnstile Widget في Cloudflare، وضع Site Key في `VITE_TURNSTILE_SITE_KEY`، ثم فعّل CAPTCHA Protection في Supabase Auth وأدخل Secret Key داخل لوحة Supabase. عندها يستخدم التطبيق الرمز في التسجيل والدخول واستعادة كلمة المرور.
+تحتوي نافذة الدخول على رابط «نسيت كلمة المرور؟». يرسل Supabase رابط الاستعادة إلى البريد الإلكتروني، وبعد فتحه يظهر نموذج تعيين كلمة مرور جديدة. يجب ضبط Site URL وRedirect URLs في Supabase على نطاق الموقع المنشور.
 
 ## التثبيت كتطبيق PWA
 
